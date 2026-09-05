@@ -50,3 +50,9 @@ scripts/simulator.sh all                # build, install in the Simulator, enabl
 4. In any text field hold the globe key and choose Fleksy Clone.
 
 With a free personal team the app must be reinstalled every 7 days.
+
+## Screenshots (iPhone 17 simulator, iOS 26.5)
+
+| English | Czech + accent popup result | Midnight theme | Settings |
+|---|---|---|---|
+| ![](docs/screenshots/english.png) | ![](docs/screenshots/czech-accent.png) | ![](docs/screenshots/midnight.png) | ![](docs/screenshots/settings.png) |
