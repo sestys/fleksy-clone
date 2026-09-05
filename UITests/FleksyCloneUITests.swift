@@ -124,7 +124,7 @@ final class FleksyCloneUITests: XCTestCase {
         app.buttons["fleksy.settingsDone"].tap()
     }
 
-    func testSwipeRightRevertsAndLearnsCorrection() {
+    func testSwipeDownRevertsAndLearnsCorrection() {
         // Start from a clean user dictionary so the correction happens.
         app.buttons["fleksy.settingsButton"].tap()
         app.buttons["fleksy.clearLearned"].tap()
@@ -133,9 +133,9 @@ final class FleksyCloneUITests: XCTestCase {
         typeText("helo")
         swipe(dx: 120, dy: 0)
         XCTAssertEqual(fieldText, "Help ")     // real list: adjacent-key fix beats an insertion
-        swipe(dx: 120, dy: 0)                  // restore typed word
+        swipe(dx: 0, dy: 90)                   // swipe down: restore typed word
         XCTAssertEqual(fieldText, "Helo ")
-        swipe(dx: 120, dy: 0)                  // learn it
+        swipe(dx: 0, dy: 90)                   // swipe down again: learn it
         XCTAssertEqual(fieldText, "Helo ")
         XCTAssertTrue(app.buttons["fleksy.notice"].waitForExistence(timeout: 2))
         XCTAssertEqual(app.buttons["fleksy.notice"].label, "✓ learned")

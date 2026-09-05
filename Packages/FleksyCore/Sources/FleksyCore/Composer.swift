@@ -78,7 +78,7 @@ public final class Composer {
         var typed: String
         /// True when autocorrect replaced the typed word.
         var corrected: Bool
-        /// True once a swipe right restored the typed word (next swipe right learns it).
+        /// True when a swipe down (not up) landed on the typed word; the next swipe down learns it.
         var reverted = false
         var current: String { options[index] }
     }
@@ -240,23 +240,6 @@ public final class Composer {
 
     private func insertSpace(fromSwipe: Bool) {
         let before = document.textBeforeCursor
-        // Swipe right after an autocorrection: first restore what was typed, then learn it.
-        if fromSwipe, var commit = lastCommit, isCommitValid(commit), commit.corrected {
-            if !commit.reverted, let typedIndex = commit.options.firstIndex(of: commit.typed) {
-                commit.reverted = true
-                lastCommit = commit
-                replaceCommit(commit, with: typedIndex)
-                return
-            }
-            if commit.reverted, commit.current == commit.typed {
-                learned.add(commit.typed, language: language)
-                commit.corrected = false
-                lastCommit = commit
-                notice = "learned"
-                refreshCandidates()
-                return
-            }
-        }
         // Another space right after an auto-inserted mark repeats it: "word. " -> "word.. ".
         if var run = punctuation, isPunctuationValid(run) {
             document.deleteBackward(1)
@@ -362,10 +345,22 @@ public final class Composer {
             replacePunctuation(run, with: ((run.index + delta) % n + n) % n)
             return
         }
-        if let commit = lastCommit, isCommitValid(commit) {
+        if var commit = lastCommit, isCommitValid(commit) {
+            // Swipe down on a word that autocorrect changed: the first swipe restores what was
+            // typed (the cycle wraps to it); a second swipe down on the typed word learns it.
+            if delta < 0, commit.corrected, commit.reverted, commit.current == commit.typed {
+                learned.add(commit.typed, language: language)
+                commit.corrected = false
+                commit.reverted = false
+                lastCommit = commit
+                notice = "learned"
+                refreshCandidates()
+                return
+            }
             guard commit.options.count > 1 else { return }
             let n = commit.options.count
             let newIndex = ((commit.index + delta) % n + n) % n
+            commit.reverted = delta < 0 && commit.options[newIndex] == commit.typed
             replaceCommit(commit, with: newIndex)
             return
         }

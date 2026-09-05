@@ -10,7 +10,7 @@ Czech + English with diacritic-aware correction ("delam" → "dělám").
 |---|---|
 | Swipe right | space (and autocorrect the word). Swipe right again: period |
 | Swipe left | delete the previous word |
-| Swipe up / down | next / previous correction for the last word (down also restores what you typed) |
+| Swipe up / down | next / previous correction for the last word. Down on a corrected word restores what you typed; down again adds it to your dictionary ("✓ learned") |
 | Swipe on the space bar, or two-finger swipe left/right | switch Čeština ⇄ English |
 | Two-finger swipe down | hide the keyboard |
 | Hold a letter | accent popup (ě š č ř ž ý á í é ú ů …), slide to choose |

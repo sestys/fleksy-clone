@@ -130,7 +130,7 @@ final class ComposerTests: XCTestCase {
         XCTAssertEqual(doc.text, "Hello,, ")
     }
 
-    func testSwipeRightAfterCorrectionRevertsThenLearns() {
+    func testSwipeDownAfterCorrectionRevertsThenLearns() {
         let store = InMemoryLearnedWords()
         let doc = FakeDocument()
         let c = Composer(document: doc, lexicons: TestLexicons.provider, learned: store, languages: [.english], settings: ComposerSettings())
@@ -138,17 +138,21 @@ final class ComposerTests: XCTestCase {
         type("wprld", into: c)
         c.handle(.swipe(.right))
         XCTAssertEqual(doc.text, "world ")
-        c.handle(.swipe(.right))                 // restore what was typed
+        c.handle(.swipe(.down))                  // restore what was typed
         XCTAssertEqual(doc.text, "wprld ")
         XCTAssertNil(c.notice)
         XCTAssertFalse(store.contains("wprld", language: .english))
-        c.handle(.swipe(.right))                 // learn it
+        c.handle(.swipe(.down))                  // learn it
         XCTAssertEqual(doc.text, "wprld ")
         XCTAssertEqual(c.notice, "learned")
         XCTAssertTrue(store.contains("wprld", language: .english))
-        c.handle(.swipe(.right))                 // back to normal: period
-        XCTAssertEqual(doc.text, "wprld. ")
+        c.handle(.swipe(.down))                  // back to normal cycling
+        XCTAssertNotEqual(doc.text, "wprld ")
         XCTAssertNil(c.notice)
+        c.handle(.swipe(.up))
+        XCTAssertEqual(doc.text, "wprld ")
+        c.handle(.swipe(.right))                 // swipe right is still the period
+        XCTAssertEqual(doc.text, "wprld. ")
 
         // Learned words are never corrected again, also for a fresh composer sharing the store.
         type("wprld", into: c)
@@ -159,6 +163,34 @@ final class ComposerTests: XCTestCase {
         c2.handle(.shiftTap)
         type("wprld ", into: c2)
         XCTAssertEqual(doc2.text, "wprld ")
+    }
+
+    func testReachingTypedWordBySwipeUpDoesNotLearn() {
+        let store = InMemoryLearnedWords()
+        let doc = FakeDocument()
+        let c = Composer(document: doc, lexicons: TestLexicons.provider, learned: store, languages: [.english], settings: ComposerSettings())
+        c.handle(.shiftTap)
+        type("wprld ", into: c)
+        XCTAssertEqual(doc.text, "world ")
+        var ups = 0
+        while doc.text != "wprld " && ups < 10 { c.handle(.swipe(.up)); ups += 1 }
+        XCTAssertEqual(doc.text, "wprld ")
+        c.handle(.swipe(.down))                  // just cycles back, no learning
+        XCTAssertNil(c.notice)
+        XCTAssertFalse(store.contains("wprld", language: .english))
+        XCTAssertNotEqual(doc.text, "wprld ")
+    }
+
+    func testSwipeDownOnUncorrectedWordDoesNotLearn() {
+        let store = InMemoryLearnedWords()
+        let doc = FakeDocument()
+        let c = Composer(document: doc, lexicons: TestLexicons.provider, learned: store, languages: [.english], settings: ComposerSettings())
+        c.handle(.shiftTap)
+        type("hello ", into: c)
+        c.handle(.swipe(.down))
+        c.handle(.swipe(.down))
+        XCTAssertNil(c.notice)
+        XCTAssertFalse(store.contains("hello", language: .english))
     }
 
     func testSpaceTapAfterCorrectionStillMakesPeriod() {
