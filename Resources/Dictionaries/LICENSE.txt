@@ -1,0 +1,3 @@
+Word frequency lists cs.txt and en.txt are derived from
+https://github.com/hermitdave/FrequencyWords (OpenSubtitles 2018),
+licensed under CC-BY-SA 4.0. Filtered to alphabetic entries only.

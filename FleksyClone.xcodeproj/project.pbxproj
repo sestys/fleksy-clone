@@ -1,0 +1,647 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		0DC7EEC85DCE978DA9692DF1 /* UIColor+RGBA.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7215C994FEC3840EBEA738C7 /* UIColor+RGBA.swift */; };
+		1D1BA827B724465A252DEFE1 /* Dictionaries in Resources */ = {isa = PBXBuildFile; fileRef = 13CCC833D73A8B83775D6DAD /* Dictionaries */; };
+		24485AAAD4AFAA503B8B4BEC /* KeyboardSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD79FF6875CFE17B435D0767 /* KeyboardSettings.swift */; };
+		396241BF74174D452AEABE13 /* LexiconLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5D4A13F3BC120F06410DA6E /* LexiconLoader.swift */; };
+		5B0BEDFEFB48AD402561B87E /* SettingsPanelView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 637781E7B18811124EF150CB /* SettingsPanelView.swift */; };
+		621C55D676EC7BCD2F7AAFBD /* ProxyDocument.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4286B478588265AB1A324410 /* ProxyDocument.swift */; };
+		6B563DF31812F1FF891249C7 /* CandidateBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C2D1C76C1B7EBF5535D3629 /* CandidateBarView.swift */; };
+		71BDA19D55CA2F2C3772EB59 /* FleksyCloneUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9420CCE1007F02BD624B5142 /* FleksyCloneUITests.swift */; };
+		73913FA2B10E51121A21B43F /* FleksyCore in Frameworks */ = {isa = PBXBuildFile; productRef = 08DF7E66B4844CDB80FB09A4 /* FleksyCore */; };
+		7E5FEF3F2667149E29FC0ED2 /* FleksyKeyboard.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 1A16452EA52C772E7E5F91F9 /* FleksyKeyboard.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		98D3066FAC8E2AE33282401F /* AccentPopupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5FE0E8274CAA952312A0AA9 /* AccentPopupView.swift */; };
+		A80594C82FF71EBA95B10D29 /* FleksyCore in Frameworks */ = {isa = PBXBuildFile; productRef = EFD9EA8E8E0796F7830A7311 /* FleksyCore */; };
+		AC9CBABBFEB5C64015247975 /* FleksyCloneApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13258F51904C1537710E3965 /* FleksyCloneApp.swift */; };
+		BFB9F06B11CA95A13F1C7696 /* KeyboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E118211035B175E74A2661E /* KeyboardView.swift */; };
+		CFB32F427F4AEE6CD67D5B2D /* FleksyCore in Frameworks */ = {isa = PBXBuildFile; productRef = 1BFE732083CD7DE19CE8A868 /* FleksyCore */; };
+		E852A370B59685EF9CA9DB71 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 019CC800977D29B015970DF7 /* ContentView.swift */; };
+		EFFC50BCE7F8C6F3E7C04D5E /* KeyboardViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20FDE319F01BAE9B19F64063 /* KeyboardViewController.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		023108ED86AD75568017AE6B /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 4B925B50A7072FC8F388248E /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 14C019883E48079DCDDB7DF5;
+			remoteInfo = FleksyKeyboard;
+		};
+		841BE7AC47BF8C8F435151AB /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 4B925B50A7072FC8F388248E /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = C5C840DFAA944E0DB1D69187;
+			remoteInfo = FleksyClone;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		066834690643EA2E2773593F /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				7E5FEF3F2667149E29FC0ED2 /* FleksyKeyboard.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		019CC800977D29B015970DF7 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		0C2D1C76C1B7EBF5535D3629 /* CandidateBarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CandidateBarView.swift; sourceTree = "<group>"; };
+		13258F51904C1537710E3965 /* FleksyCloneApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FleksyCloneApp.swift; sourceTree = "<group>"; };
+		13CCC833D73A8B83775D6DAD /* Dictionaries */ = {isa = PBXFileReference; lastKnownFileType = folder; name = Dictionaries; path = Resources/Dictionaries; sourceTree = SOURCE_ROOT; };
+		1A16452EA52C772E7E5F91F9 /* FleksyKeyboard.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = FleksyKeyboard.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		20BF2C8D187C6F7ADE609515 /* FleksyCore */ = {isa = PBXFileReference; lastKnownFileType = folder; name = FleksyCore; path = Packages/FleksyCore; sourceTree = SOURCE_ROOT; };
+		20FDE319F01BAE9B19F64063 /* KeyboardViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardViewController.swift; sourceTree = "<group>"; };
+		4286B478588265AB1A324410 /* ProxyDocument.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProxyDocument.swift; sourceTree = "<group>"; };
+		47C321363512906437B24A51 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		637781E7B18811124EF150CB /* SettingsPanelView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsPanelView.swift; sourceTree = "<group>"; };
+		64321FE1E774C1723C0219EC /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		7215C994FEC3840EBEA738C7 /* UIColor+RGBA.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UIColor+RGBA.swift"; sourceTree = "<group>"; };
+		7E118211035B175E74A2661E /* KeyboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardView.swift; sourceTree = "<group>"; };
+		9420CCE1007F02BD624B5142 /* FleksyCloneUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FleksyCloneUITests.swift; sourceTree = "<group>"; };
+		9CCD39D6537379DAE1B65B8C /* FleksyClone.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = FleksyClone.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		CD79FF6875CFE17B435D0767 /* KeyboardSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardSettings.swift; sourceTree = "<group>"; };
+		D246A8672329DA19B27CC11F /* FleksyCloneUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = FleksyCloneUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		D5D4A13F3BC120F06410DA6E /* LexiconLoader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LexiconLoader.swift; sourceTree = "<group>"; };
+		F5FE0E8274CAA952312A0AA9 /* AccentPopupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccentPopupView.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		16D44FF8D7B04A7634B63EC8 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				CFB32F427F4AEE6CD67D5B2D /* FleksyCore in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		42A5AE8FEB76EA674F6F2D3A /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A80594C82FF71EBA95B10D29 /* FleksyCore in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		C605A7F5FBF6983CF9E2F58D /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				73913FA2B10E51121A21B43F /* FleksyCore in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		0108045795580299C76044F7 = {
+			isa = PBXGroup;
+			children = (
+				43515E7545665A148EE496B6 /* App */,
+				F87EC88DD834A9A66341B2C1 /* Keyboard */,
+				CF4A4E8117CC3431D9B37ECF /* Packages */,
+				8BEF54F11C91D69556B8AFFD /* Resources */,
+				01EA5D84EA106B020DF5F6CD /* UITests */,
+				4B2F3263B8158B320E3DF386 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		01EA5D84EA106B020DF5F6CD /* UITests */ = {
+			isa = PBXGroup;
+			children = (
+				9420CCE1007F02BD624B5142 /* FleksyCloneUITests.swift */,
+			);
+			path = UITests;
+			sourceTree = "<group>";
+		};
+		43515E7545665A148EE496B6 /* App */ = {
+			isa = PBXGroup;
+			children = (
+				019CC800977D29B015970DF7 /* ContentView.swift */,
+				13258F51904C1537710E3965 /* FleksyCloneApp.swift */,
+				47C321363512906437B24A51 /* Info.plist */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		4B2F3263B8158B320E3DF386 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				9CCD39D6537379DAE1B65B8C /* FleksyClone.app */,
+				D246A8672329DA19B27CC11F /* FleksyCloneUITests.xctest */,
+				1A16452EA52C772E7E5F91F9 /* FleksyKeyboard.appex */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		8BEF54F11C91D69556B8AFFD /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				13CCC833D73A8B83775D6DAD /* Dictionaries */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		CF4A4E8117CC3431D9B37ECF /* Packages */ = {
+			isa = PBXGroup;
+			children = (
+				20BF2C8D187C6F7ADE609515 /* FleksyCore */,
+			);
+			path = Packages;
+			sourceTree = "<group>";
+		};
+		F87EC88DD834A9A66341B2C1 /* Keyboard */ = {
+			isa = PBXGroup;
+			children = (
+				F5FE0E8274CAA952312A0AA9 /* AccentPopupView.swift */,
+				0C2D1C76C1B7EBF5535D3629 /* CandidateBarView.swift */,
+				64321FE1E774C1723C0219EC /* Info.plist */,
+				CD79FF6875CFE17B435D0767 /* KeyboardSettings.swift */,
+				7E118211035B175E74A2661E /* KeyboardView.swift */,
+				20FDE319F01BAE9B19F64063 /* KeyboardViewController.swift */,
+				D5D4A13F3BC120F06410DA6E /* LexiconLoader.swift */,
+				4286B478588265AB1A324410 /* ProxyDocument.swift */,
+				637781E7B18811124EF150CB /* SettingsPanelView.swift */,
+				7215C994FEC3840EBEA738C7 /* UIColor+RGBA.swift */,
+			);
+			path = Keyboard;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		10903C2607CE0A89622815BF /* FleksyCloneUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 6146A89E65DA9A73F5B1A98E /* Build configuration list for PBXNativeTarget "FleksyCloneUITests" */;
+			buildPhases = (
+				9C525FABB2287BB114722C1C /* Sources */,
+				C605A7F5FBF6983CF9E2F58D /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				2AEDC5E00D0C2A33EAB0CB10 /* PBXTargetDependency */,
+			);
+			name = FleksyCloneUITests;
+			packageProductDependencies = (
+				08DF7E66B4844CDB80FB09A4 /* FleksyCore */,
+			);
+			productName = FleksyCloneUITests;
+			productReference = D246A8672329DA19B27CC11F /* FleksyCloneUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+		14C019883E48079DCDDB7DF5 /* FleksyKeyboard */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 4DC8011AD6EB23E319C23958 /* Build configuration list for PBXNativeTarget "FleksyKeyboard" */;
+			buildPhases = (
+				AD4EE2B49F6522B2E09F6B09 /* Sources */,
+				D9672D8944C4BD5F3E961D9D /* Resources */,
+				16D44FF8D7B04A7634B63EC8 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = FleksyKeyboard;
+			packageProductDependencies = (
+				1BFE732083CD7DE19CE8A868 /* FleksyCore */,
+			);
+			productName = FleksyKeyboard;
+			productReference = 1A16452EA52C772E7E5F91F9 /* FleksyKeyboard.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+		C5C840DFAA944E0DB1D69187 /* FleksyClone */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 0EE577D70CBC14642824B395 /* Build configuration list for PBXNativeTarget "FleksyClone" */;
+			buildPhases = (
+				D04F1A4133FF30B1E91B4BB5 /* Sources */,
+				42A5AE8FEB76EA674F6F2D3A /* Frameworks */,
+				066834690643EA2E2773593F /* Embed Foundation Extensions */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				30BBAAC4C5BFC13C4C7F6E7D /* PBXTargetDependency */,
+			);
+			name = FleksyClone;
+			packageProductDependencies = (
+				EFD9EA8E8E0796F7830A7311 /* FleksyCore */,
+			);
+			productName = FleksyClone;
+			productReference = 9CCD39D6537379DAE1B65B8C /* FleksyClone.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		4B925B50A7072FC8F388248E /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+					10903C2607CE0A89622815BF = {
+						DevelopmentTeam = "";
+						ProvisioningStyle = Automatic;
+						TestTargetID = C5C840DFAA944E0DB1D69187;
+					};
+					14C019883E48079DCDDB7DF5 = {
+						DevelopmentTeam = "";
+						ProvisioningStyle = Automatic;
+					};
+					C5C840DFAA944E0DB1D69187 = {
+						DevelopmentTeam = "";
+						ProvisioningStyle = Automatic;
+					};
+				};
+			};
+			buildConfigurationList = 226A7A50D10039466CA8B949 /* Build configuration list for PBXProject "FleksyClone" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = 0108045795580299C76044F7;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				982596A1A0A97E2205CBE389 /* XCLocalSwiftPackageReference "Packages/FleksyCore" */,
+			);
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 4B2F3263B8158B320E3DF386 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				C5C840DFAA944E0DB1D69187 /* FleksyClone */,
+				14C019883E48079DCDDB7DF5 /* FleksyKeyboard */,
+				10903C2607CE0A89622815BF /* FleksyCloneUITests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		D9672D8944C4BD5F3E961D9D /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				1D1BA827B724465A252DEFE1 /* Dictionaries in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		9C525FABB2287BB114722C1C /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				71BDA19D55CA2F2C3772EB59 /* FleksyCloneUITests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		AD4EE2B49F6522B2E09F6B09 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				98D3066FAC8E2AE33282401F /* AccentPopupView.swift in Sources */,
+				6B563DF31812F1FF891249C7 /* CandidateBarView.swift in Sources */,
+				24485AAAD4AFAA503B8B4BEC /* KeyboardSettings.swift in Sources */,
+				BFB9F06B11CA95A13F1C7696 /* KeyboardView.swift in Sources */,
+				EFFC50BCE7F8C6F3E7C04D5E /* KeyboardViewController.swift in Sources */,
+				396241BF74174D452AEABE13 /* LexiconLoader.swift in Sources */,
+				621C55D676EC7BCD2F7AAFBD /* ProxyDocument.swift in Sources */,
+				5B0BEDFEFB48AD402561B87E /* SettingsPanelView.swift in Sources */,
+				0DC7EEC85DCE978DA9692DF1 /* UIColor+RGBA.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D04F1A4133FF30B1E91B4BB5 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				E852A370B59685EF9CA9DB71 /* ContentView.swift in Sources */,
+				AC9CBABBFEB5C64015247975 /* FleksyCloneApp.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		2AEDC5E00D0C2A33EAB0CB10 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = C5C840DFAA944E0DB1D69187 /* FleksyClone */;
+			targetProxy = 841BE7AC47BF8C8F435151AB /* PBXContainerItemProxy */;
+		};
+		30BBAAC4C5BFC13C4C7F6E7D /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 14C019883E48079DCDDB7DF5 /* FleksyKeyboard */;
+			targetProxy = 023108ED86AD75568017AE6B /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		0F345C267B26D21A5CD4AEAD /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = "";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 0.1.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.10;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+		24732CDDB10829559DA2A90D /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				INFOPLIST_FILE = Keyboard/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.matejsestak.fleksyclone.keyboard;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		32776131E693D0FA3A15B4A4 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				INFOPLIST_FILE = App/Info.plist;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.matejsestak.fleksyclone;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		43B735A45E66D34CA106A317 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				INFOPLIST_FILE = Keyboard/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.matejsestak.fleksyclone.keyboard;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		4E4A912ECB8FE3E37FF388DF /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 0.1.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.10;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		7F0C8C2D02F070482C7969F0 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.matejsestak.fleksyclone.uitests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = FleksyClone;
+			};
+			name = Release;
+		};
+		A763914712D023F0771A2FA1 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.matejsestak.fleksyclone.uitests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = FleksyClone;
+			};
+			name = Debug;
+		};
+		D76BCA7E096EA1FD40D9F712 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				INFOPLIST_FILE = App/Info.plist;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.matejsestak.fleksyclone;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		0EE577D70CBC14642824B395 /* Build configuration list for PBXNativeTarget "FleksyClone" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				32776131E693D0FA3A15B4A4 /* Debug */,
+				D76BCA7E096EA1FD40D9F712 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		226A7A50D10039466CA8B949 /* Build configuration list for PBXProject "FleksyClone" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				4E4A912ECB8FE3E37FF388DF /* Debug */,
+				0F345C267B26D21A5CD4AEAD /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		4DC8011AD6EB23E319C23958 /* Build configuration list for PBXNativeTarget "FleksyKeyboard" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				43B735A45E66D34CA106A317 /* Debug */,
+				24732CDDB10829559DA2A90D /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		6146A89E65DA9A73F5B1A98E /* Build configuration list for PBXNativeTarget "FleksyCloneUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A763914712D023F0771A2FA1 /* Debug */,
+				7F0C8C2D02F070482C7969F0 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		982596A1A0A97E2205CBE389 /* XCLocalSwiftPackageReference "Packages/FleksyCore" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = Packages/FleksyCore;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		08DF7E66B4844CDB80FB09A4 /* FleksyCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = FleksyCore;
+		};
+		1BFE732083CD7DE19CE8A868 /* FleksyCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = FleksyCore;
+		};
+		EFD9EA8E8E0796F7830A7311 /* FleksyCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = FleksyCore;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = 4B925B50A7072FC8F388248E /* Project object */;
+}
