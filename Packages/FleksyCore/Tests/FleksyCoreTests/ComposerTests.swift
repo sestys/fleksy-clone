@@ -79,6 +79,16 @@ final class ComposerTests: XCTestCase {
         XCTAssertEqual(doc.text, "Hello. ")  // "hello" was already correct: only one option besides alternatives
     }
 
+    func testSpaceAfterOtherGestureStillMakesPeriod() {
+        let (c, doc) = make("Hello world ")
+        c.handle(.swipe(.left))
+        XCTAssertEqual(doc.text, "Hello ")
+        c.handle(.swipe(.right))
+        XCTAssertEqual(doc.text, "Hello. ")
+        c.handle(.swipe(.right))            // no word before the period: plain space
+        XCTAssertEqual(doc.text, "Hello.  ")
+    }
+
     func testDoubleSpaceMakesPeriod() {
         let (c, doc) = make()
         type("hello  ", into: c)

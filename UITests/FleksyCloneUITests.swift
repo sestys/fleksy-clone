@@ -22,8 +22,9 @@ final class FleksyCloneUITests: XCTestCase {
 
     func activateFleksyKeyboard() throws {
         if keyboard.waitForExistence(timeout: 3) { return }
-        // The system keyboard came up first: cycle to the next keyboard.
-        let next = app.keyboards.buttons["Next keyboard"]
+        // The system keyboard came up first: cycle to the next keyboard. On Face ID phones the
+        // globe lives in a system bar below the keyboard, so query it at app level.
+        let next = app.buttons["Next keyboard"]
         for _ in 0..<3 {
             if next.exists { next.tap() } else { break }
             if keyboard.waitForExistence(timeout: 3) { return }

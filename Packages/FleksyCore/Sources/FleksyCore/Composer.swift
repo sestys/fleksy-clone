@@ -204,9 +204,8 @@ public final class Composer {
 
     private func insertSpace(fromSwipe: Bool) {
         let before = document.textBeforeCursor
-        // Double space / double swipe right -> period.
-        if settings.doubleSpacePeriod, before.hasSuffix(" "), !before.hasSuffix(". "),
-           lastEvent == (fromSwipe ? .swipe(.right) : .space) {
+        // Space (or swipe right) directly after "word " -> period. Fleksy: swipe right twice.
+        if settings.doubleSpacePeriod, before.hasSuffix(" "), !before.hasSuffix(". ") {
             let trimmed = before.dropLast()
             if let last = trimmed.unicodeScalars.last, Composer.isWordScalar(last) || last == ")" || last == "\"" {
                 document.deleteBackward(1)
