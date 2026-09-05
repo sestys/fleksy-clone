@@ -83,7 +83,7 @@ schemes:
         FleksyKeyboard: all
         FleksyCloneUITests: [test]
     run:
-      config: Debug
+      config: Release
     test:
       config: Debug
       targets:
