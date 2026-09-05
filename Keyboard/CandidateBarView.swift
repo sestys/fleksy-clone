@@ -12,6 +12,8 @@ final class CandidateBarView: UIView {
     var theme: Theme { didSet { applyTheme() } }
     var items: [CandidateItem] = [] { didSet { rebuild() } }
     var languageHint: String = "" { didSet { rebuild() } }
+    /// Transient status shown centred instead of candidates (e.g. "learned").
+    var notice: String? { didSet { rebuild() } }
 
     private let settingsButton = UIButton(type: .custom)
     private let stack = UIStackView()
@@ -71,6 +73,17 @@ final class CandidateBarView: UIView {
     }
 
     private func rebuild() {
+        if let notice {
+            for (slot, label) in labels.enumerated() {
+                label.isHidden = false
+                label.text = slot == 1 ? "✓ \(notice)" : ""
+                label.textColor = UIColor(theme.candidateSelected)
+                label.font = .systemFont(ofSize: 15, weight: .semibold)
+                label.accessibilityIdentifier = slot == 1 ? "fleksy.notice" : "fleksy.candidate\(slot)"
+            }
+            return
+        }
+        for (slot, label) in labels.enumerated() { label.accessibilityIdentifier = "fleksy.candidate\(slot)" }
         let selected = items.firstIndex { $0.isSelected } ?? 0
         var start = 0
         if items.count > 3 {

@@ -4,6 +4,7 @@ import FleksyCore
 final class KeyboardViewController: UIInputViewController {
     private let settings = KeyboardSettings.shared
     private let lexicons = LexiconLoader()
+    private let learned = PersistentLearnedWords()
     private var composer: Composer!
     private var keyboardView: KeyboardView!
     private var candidateBar: CandidateBarView!
@@ -17,7 +18,7 @@ final class KeyboardViewController: UIInputViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         let document = ProxyDocument { [unowned self] in self.textDocumentProxy }
-        composer = Composer(document: document, lexicons: lexicons, languages: settings.languages,
+        composer = Composer(document: document, lexicons: lexicons, learned: learned, languages: settings.languages,
                             language: settings.currentLanguage, settings: settings.composerSettings)
         composer.onLanguageChange = { [weak self] lang in
             guard let self else { return }
@@ -141,8 +142,9 @@ final class KeyboardViewController: UIInputViewController {
     private func syncUI() {
         keyboardView.shift = composer.shift
         keyboardView.returnLabel = returnLabel()
-        candidateBar.items = composer.candidates
         candidateBar.languageHint = composer.language.displayName
+        candidateBar.notice = composer.notice
+        candidateBar.items = composer.candidates
     }
 
     private func applyTheme() {
@@ -304,6 +306,7 @@ extension KeyboardViewController: CandidateBarDelegate {
 
 extension KeyboardViewController: SettingsPanelDelegate {
     func settingsPanelDidChange(_ panel: SettingsPanelView) {
+        learned.reload()
         composer.settings = settings.composerSettings
         composer.setLanguages(settings.languages, current: settings.currentLanguage)
         composer.invalidateCorrectors()

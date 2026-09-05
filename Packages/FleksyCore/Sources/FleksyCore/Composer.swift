@@ -53,6 +53,19 @@ public final class InMemoryLexicons: LexiconProvider {
     public func lexicon(for language: Language) -> Lexicon? { map[language] }
 }
 
+/// Words the user explicitly taught the keyboard (swipe right twice after a correction).
+public protocol LearnedWordsStore: AnyObject {
+    func contains(_ word: String, language: Language) -> Bool
+    func add(_ word: String, language: Language)
+}
+
+public final class InMemoryLearnedWords: LearnedWordsStore {
+    private var sets: [Language: Set<String>] = [:]
+    public init() {}
+    public func contains(_ word: String, language: Language) -> Bool { sets[language]?.contains(word.lowercased()) ?? false }
+    public func add(_ word: String, language: Language) { sets[language, default: []].insert(word.lowercased()) }
+}
+
 /// The single place that mutates text. Implements the Fleksy editing model:
 /// autocorrect on commit, swipe up/down to swap the committed word, swipe left to
 /// delete a word, swipe right for space and double swipe for a period.
@@ -61,6 +74,12 @@ public final class Composer {
         var options: [String]
         var index: Int
         var trailing: String
+        /// The word exactly as typed, before any correction.
+        var typed: String
+        /// True when autocorrect replaced the typed word.
+        var corrected: Bool
+        /// True once a swipe right restored the typed word (next swipe right learns it).
+        var reverted = false
         var current: String { options[index] }
     }
 
@@ -80,17 +99,21 @@ public final class Composer {
     public private(set) var language: Language
     public private(set) var shift: ShiftState = .off
     public private(set) var candidates: [CandidateItem] = []
+    /// Short status shown in the suggestion bar after an action (e.g. "learned").
+    public private(set) var notice: String?
     public var onLanguageChange: ((Language) -> Void)?
 
     private let lexicons: LexiconProvider
+    private let learned: LearnedWordsStore
     private var correctors: [Language: Corrector] = [:]
     private var lastCommit: Commit?
     private var punctuation: PunctuationRun?
     private var lastEvent: InputEvent?
 
-    public init(document: TextDocument, lexicons: LexiconProvider, languages: [Language] = [.czech, .english], language: Language? = nil, settings: ComposerSettings = ComposerSettings()) {
+    public init(document: TextDocument, lexicons: LexiconProvider, learned: LearnedWordsStore = InMemoryLearnedWords(), languages: [Language] = [.czech, .english], language: Language? = nil, settings: ComposerSettings = ComposerSettings()) {
         self.document = document
         self.lexicons = lexicons
+        self.learned = learned
         self.languages = languages.isEmpty ? [.english] : languages
         self.language = language ?? self.languages[0]
         self.settings = settings
@@ -109,6 +132,7 @@ public final class Composer {
     // MARK: - Event handling
 
     public func handle(_ event: InputEvent) {
+        notice = nil
         switch event {
         case .character(let c):
             typeCharacter(c)
@@ -216,6 +240,23 @@ public final class Composer {
 
     private func insertSpace(fromSwipe: Bool) {
         let before = document.textBeforeCursor
+        // Swipe right after an autocorrection: first restore what was typed, then learn it.
+        if fromSwipe, var commit = lastCommit, isCommitValid(commit), commit.corrected {
+            if !commit.reverted, let typedIndex = commit.options.firstIndex(of: commit.typed) {
+                commit.reverted = true
+                lastCommit = commit
+                replaceCommit(commit, with: typedIndex)
+                return
+            }
+            if commit.reverted, commit.current == commit.typed {
+                learned.add(commit.typed, language: language)
+                commit.corrected = false
+                lastCommit = commit
+                notice = "learned"
+                refreshCandidates()
+                return
+            }
+        }
         // Another space right after an auto-inserted mark repeats it: "word. " -> "word.. ".
         if var run = punctuation, isPunctuationValid(run) {
             document.deleteBackward(1)
@@ -268,20 +309,23 @@ public final class Composer {
             return
         }
         var options = [word]
+        var corrected = false
         if let corrector = corrector(for: language), word.count >= 2 {
             let cands = corrector.candidates(for: word)
             let alternatives = cands.map { Composer.applyCase(of: word, to: $0.word) }.filter { $0.lowercased() != word.lowercased() }
-            if settings.autocorrect, let best = Composer.correction(for: word, candidates: cands, corrector: corrector) {
+            let isLearned = learned.contains(word, language: language)
+            if settings.autocorrect, !isLearned, let best = Composer.correction(for: word, candidates: cands, corrector: corrector) {
                 let replacement = Composer.applyCase(of: word, to: best.word)
                 document.deleteBackward(word.count)
                 document.insert(replacement)
                 options = [replacement] + alternatives.filter { $0 != replacement } + [word]
+                corrected = true
             } else {
                 options = [word] + alternatives
             }
         }
         document.insert(trailing)
-        lastCommit = Commit(options: options, index: 0, trailing: trailing)
+        lastCommit = Commit(options: options, index: 0, trailing: trailing, typed: word, corrected: corrected)
         refreshCandidates()
     }
 
@@ -360,7 +404,7 @@ public final class Composer {
         var options = candidates.map { $0.text }
         options.remove(at: i)
         options.insert(chosen, at: 0)
-        lastCommit = Commit(options: options, index: 0, trailing: " ")
+        lastCommit = Commit(options: options, index: 0, trailing: " ", typed: word, corrected: false)
         refreshCandidates()
         refreshAutoCapitalization()
     }

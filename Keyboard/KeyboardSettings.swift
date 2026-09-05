@@ -78,11 +78,47 @@ final class KeyboardSettings {
         recentEmoji = list
     }
 
+    // MARK: Learned words
+
+    private static let learnedKey = "learnedWords"
+
+    /// Stored as "cs:word" / "en:word".
+    var learnedWords: [String] {
+        get { defaults.stringArray(forKey: KeyboardSettings.learnedKey) ?? [] }
+        set { defaults.set(newValue, forKey: KeyboardSettings.learnedKey) }
+    }
+
+    func clearLearnedWords() { learnedWords = [] }
+
     var composerSettings: ComposerSettings {
         var s = ComposerSettings()
         s.autocorrect = autocorrect
         s.autoCapitalize = autoCapitalize
         s.czechQwertz = czechQwertz
         return s
+    }
+}
+
+/// LearnedWordsStore backed by the extension's UserDefaults.
+final class PersistentLearnedWords: LearnedWordsStore {
+    private let settings: KeyboardSettings
+    private var cache: Set<String>
+
+    init(settings: KeyboardSettings = .shared) {
+        self.settings = settings
+        cache = Set(settings.learnedWords)
+    }
+
+    func reload() { cache = Set(settings.learnedWords) }
+
+    func contains(_ word: String, language: Language) -> Bool {
+        cache.contains("\(language.rawValue):\(word.lowercased())")
+    }
+
+    func add(_ word: String, language: Language) {
+        let entry = "\(language.rawValue):\(word.lowercased())"
+        guard !cache.contains(entry) else { return }
+        cache.insert(entry)
+        settings.learnedWords = settings.learnedWords + [entry]
     }
 }

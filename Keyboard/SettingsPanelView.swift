@@ -135,14 +135,30 @@ final class SettingsPanelView: UIView {
         slider.addTarget(self, action: #selector(heightChanged(_:)), for: .valueChanged)
         stack.addArrangedSubview(row("Key height", control: slider))
 
+        // Learned words
+        let forget = UIButton(type: .system)
+        forget.setTitle("Forget learned words (\(settings.learnedWords.count))", for: .normal)
+        forget.titleLabel?.font = .systemFont(ofSize: 15, weight: .regular)
+        forget.tintColor = UIColor(theme.candidateSelected)
+        forget.contentHorizontalAlignment = .leading
+        forget.accessibilityIdentifier = "fleksy.clearLearned"
+        forget.addTarget(self, action: #selector(forgetTapped(_:)), for: .touchUpInside)
+        stack.addArrangedSubview(forget)
+
         // Gesture cheat sheet
         stack.addArrangedSubview(label("GESTURES"))
-        let help = label("→ space   ←  delete word   ↑↓ change word   ⇄ on space bar: language   ⇊ two fingers: hide", size: 12, weight: .regular)
+        let help = label("→ space (again after a correction: restore typed word, again: learn it)   ←  delete word   ↑↓ change word   ⇄ on space bar: language   ⇊ two fingers: hide", size: 12, weight: .regular)
         help.numberOfLines = 0
         stack.addArrangedSubview(help)
     }
 
     @objc private func closeTapped() { delegate?.settingsPanelDidClose(self) }
+
+    @objc private func forgetTapped(_ b: UIButton) {
+        settings.clearLearnedWords()
+        b.setTitle("Forget learned words (0)", for: .normal)
+        delegate?.settingsPanelDidChange(self)
+    }
 
     @objc private func themeTapped(_ b: UIButton) {
         settings.theme = Theme.all[b.tag]
