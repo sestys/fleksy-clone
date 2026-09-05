@@ -74,9 +74,9 @@ final class ComposerTests: XCTestCase {
         c.handle(.swipe(.right))
         XCTAssertEqual(doc.text, "Hello. ")
         XCTAssertEqual(c.shift, .on)
-        // The committed word can still be swapped, keeping the period.
+        // After the auto period, swipes cycle punctuation (down wraps to the end of the cycle).
         c.handle(.swipe(.down))
-        XCTAssertEqual(doc.text, "Hello. ")  // "hello" was already correct: only one option besides alternatives
+        XCTAssertEqual(doc.text, "Hello: ")
     }
 
     func testSpaceAfterOtherGestureStillMakesPeriod() {
@@ -85,8 +85,49 @@ final class ComposerTests: XCTestCase {
         XCTAssertEqual(doc.text, "Hello ")
         c.handle(.swipe(.right))
         XCTAssertEqual(doc.text, "Hello. ")
-        c.handle(.swipe(.right))            // no word before the period: plain space
-        XCTAssertEqual(doc.text, "Hello.  ")
+        c.handle(.swipe(.right))            // another space repeats the mark
+        XCTAssertEqual(doc.text, "Hello.. ")
+    }
+
+    func testSwipeUpAfterPeriodCyclesPunctuation() {
+        let (c, doc) = make()
+        type("hello  ", into: c)
+        XCTAssertEqual(doc.text, "Hello. ")
+        XCTAssertEqual(c.candidates.map(\.text), Composer.punctuationCycle)
+        XCTAssertTrue(c.candidates[0].isSelected)
+        c.handle(.swipe(.up))
+        XCTAssertEqual(doc.text, "Hello, ")
+        XCTAssertEqual(c.shift, .off)
+        c.handle(.swipe(.up))
+        XCTAssertEqual(doc.text, "Hello! ")
+        XCTAssertEqual(c.shift, .on)
+        c.handle(.swipe(.down))
+        XCTAssertEqual(doc.text, "Hello, ")
+        c.handle(.swipe(.down))
+        XCTAssertEqual(doc.text, "Hello. ")
+        c.handle(.swipe(.down))
+        XCTAssertEqual(doc.text, "Hello: ")
+        c.handle(.selectCandidate(3))
+        XCTAssertEqual(doc.text, "Hello? ")
+        type("ok", into: c)
+        XCTAssertEqual(doc.text, "Hello? Ok")
+        c.handle(.swipe(.up))          // corrects the word being typed, not punctuation
+        XCTAssertEqual(doc.text, "Hello? Ok")
+    }
+
+    func testRepeatedSpaceRepeatsTheMark() {
+        let (c, doc) = make()
+        type("hello   ", into: c)
+        XCTAssertEqual(doc.text, "Hello.. ")
+        c.handle(.swipe(.right))
+        XCTAssertEqual(doc.text, "Hello... ")
+        c.handle(.swipe(.up))
+        XCTAssertEqual(doc.text, "Hello, ")
+        c.handle(.space)
+        XCTAssertEqual(doc.text, "Hello,, ")
+        c.handle(.backspace)
+        c.handle(.space)               // run broken by backspace: plain space
+        XCTAssertEqual(doc.text, "Hello,, ")
     }
 
     func testDoubleSpaceMakesPeriod() {

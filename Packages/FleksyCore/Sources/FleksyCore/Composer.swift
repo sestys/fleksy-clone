@@ -64,6 +64,16 @@ public final class Composer {
         var current: String { options[index] }
     }
 
+    /// Marks offered after a double space, in swipe-up order.
+    public static let punctuationCycle = [".", ",", "!", "?", ";", ":"]
+
+    struct PunctuationRun {
+        var index: Int
+        var count: Int
+        var mark: String { Composer.punctuationCycle[index] }
+        var text: String { String(repeating: mark, count: count) + " " }
+    }
+
     public let document: TextDocument
     public var settings: ComposerSettings
     public private(set) var languages: [Language]
@@ -75,6 +85,7 @@ public final class Composer {
     private let lexicons: LexiconProvider
     private var correctors: [Language: Corrector] = [:]
     private var lastCommit: Commit?
+    private var punctuation: PunctuationRun?
     private var lastEvent: InputEvent?
 
     public init(document: TextDocument, lexicons: LexiconProvider, languages: [Language] = [.czech, .english], language: Language? = nil, settings: ComposerSettings = ComposerSettings()) {
@@ -181,6 +192,7 @@ public final class Composer {
         if isWordChar {
             document.insert(c)
             lastCommit = nil
+            punctuation = nil
             if shift == .on { shift = .off }
             refreshCandidates()
         } else {
@@ -204,21 +216,45 @@ public final class Composer {
 
     private func insertSpace(fromSwipe: Bool) {
         let before = document.textBeforeCursor
+        // Another space right after an auto-inserted mark repeats it: "word. " -> "word.. ".
+        if var run = punctuation, isPunctuationValid(run) {
+            document.deleteBackward(1)
+            document.insert(run.mark + " ")
+            run.count += 1
+            punctuation = run
+            refreshCandidates()
+            refreshAutoCapitalization()
+            return
+        }
         // Space (or swipe right) directly after "word " -> period. Fleksy: swipe right twice.
         if settings.doubleSpacePeriod, before.hasSuffix(" "), !before.hasSuffix(". ") {
             let trimmed = before.dropLast()
             if let last = trimmed.unicodeScalars.last, Composer.isWordScalar(last) || last == ")" || last == "\"" {
                 document.deleteBackward(1)
                 document.insert(". ")
-                if var commit = lastCommit, commit.trailing == " " {
-                    commit.trailing = ". "
-                    lastCommit = commit
-                }
+                punctuation = PunctuationRun(index: 0, count: 1)
+                lastCommit = nil
+                refreshCandidates()
                 refreshAutoCapitalization()
                 return
             }
         }
+        punctuation = nil
         commitCurrentWord(trailing: " ")
+        refreshAutoCapitalization()
+    }
+
+    private func isPunctuationValid(_ run: PunctuationRun) -> Bool {
+        document.textBeforeCursor.hasSuffix(run.text)
+    }
+
+    /// Replaces the current punctuation run with a single mark from the cycle.
+    private func replacePunctuation(_ run: PunctuationRun, with index: Int) {
+        document.deleteBackward(run.text.count)
+        let updated = PunctuationRun(index: index, count: 1)
+        document.insert(updated.text)
+        punctuation = updated
+        refreshCandidates()
         refreshAutoCapitalization()
     }
 
@@ -277,6 +313,11 @@ public final class Composer {
     }
 
     private func cycleCommit(by delta: Int) {
+        if let run = punctuation, isPunctuationValid(run) {
+            let n = Composer.punctuationCycle.count
+            replacePunctuation(run, with: ((run.index + delta) % n + n) % n)
+            return
+        }
         if let commit = lastCommit, isCommitValid(commit) {
             guard commit.options.count > 1 else { return }
             let n = commit.options.count
@@ -301,6 +342,11 @@ public final class Composer {
     }
 
     private func selectCandidate(_ i: Int) {
+        if let run = punctuation, isPunctuationValid(run) {
+            guard Composer.punctuationCycle.indices.contains(i) else { return }
+            replacePunctuation(run, with: i)
+            return
+        }
         if let commit = lastCommit, isCommitValid(commit) {
             guard commit.options.indices.contains(i) else { return }
             replaceCommit(commit, with: i)
@@ -331,6 +377,7 @@ public final class Composer {
         if wordCount == 0, i > 0 { wordCount = 1 } // a lone punctuation mark
         document.deleteBackward(count + wordCount)
         lastCommit = nil
+        punctuation = nil
         refreshCandidates()
         refreshAutoCapitalization()
     }
@@ -338,6 +385,11 @@ public final class Composer {
     // MARK: - Derived state
 
     private func refreshCandidates() {
+        if let run = punctuation, isPunctuationValid(run) {
+            candidates = Composer.punctuationCycle.enumerated().map { CandidateItem(text: $1, isSelected: $0 == run.index) }
+            return
+        }
+        punctuation = nil
         if let commit = lastCommit, isCommitValid(commit) {
             candidates = commit.options.enumerated().map { CandidateItem(text: $1, isSelected: $0 == commit.index) }
             return
