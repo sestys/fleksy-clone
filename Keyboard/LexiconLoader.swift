@@ -24,8 +24,10 @@ final class LexiconLoader: LexiconProvider {
     }
 
     private func load(_ language: Language) {
-        guard let url = Bundle.main.url(forResource: language.lexiconResource, withExtension: "txt"),
-              let text = try? String(contentsOf: url, encoding: .utf8) else {
+        let bundle = Bundle(for: LexiconLoader.self)
+        let url = bundle.url(forResource: language.lexiconResource, withExtension: "txt", subdirectory: "Dictionaries")
+            ?? bundle.url(forResource: language.lexiconResource, withExtension: "txt")
+        guard let url, let text = try? String(contentsOf: url, encoding: .utf8) else {
             lock.lock(); loading.remove(language); lock.unlock()
             return
         }

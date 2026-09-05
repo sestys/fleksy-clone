@@ -147,7 +147,7 @@ final class KeyboardView: UIView, UIInputViewAudioFeedback {
                 ctx.fill(kf.frame)
             }
             let f = kf.frame
-            if kf.row != rows.count - 1 || true {
+            do {
                 ctx.move(to: CGPoint(x: f.maxX, y: f.minY + f.height * 0.28))
                 ctx.addLine(to: CGPoint(x: f.maxX, y: f.maxY - f.height * 0.28))
                 ctx.strokePath()
