@@ -25,7 +25,7 @@ enum TestLexicons {
         ("dělám", 500), ("děláš", 300), ("dělat", 400), ("ahoj", 800), ("jak", 900), ("se", 1000),
         ("máš", 700), ("dobře", 600), ("řeč", 100), ("čau", 300), ("že", 950), ("to", 990),
         ("dnes", 500), ("zítra", 400), ("jsem", 900), ("jsi", 850), ("být", 700), ("byt", 200),
-        ("přijdu", 300), ("prší", 150),
+        ("přijdu", 300), ("prší", 150), ("dekuji", 40), ("děkuji", 4000),
     ])
     static let provider = InMemoryLexicons([english, czech])
 }

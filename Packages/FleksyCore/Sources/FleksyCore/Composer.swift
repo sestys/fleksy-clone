@@ -236,8 +236,7 @@ public final class Composer {
         if let corrector = corrector(for: language), word.count >= 2 {
             let cands = corrector.candidates(for: word)
             let alternatives = cands.map { Composer.applyCase(of: word, to: $0.word) }.filter { $0.lowercased() != word.lowercased() }
-            if settings.autocorrect, let best = cands.first(where: { $0.word != word.lowercased() }),
-               Composer.shouldCorrect(word, best: best, corrector: corrector) {
+            if settings.autocorrect, let best = Composer.correction(for: word, candidates: cands, corrector: corrector) {
                 let replacement = Composer.applyCase(of: word, to: best.word)
                 document.deleteBackward(word.count)
                 document.insert(replacement)
@@ -251,14 +250,27 @@ public final class Composer {
         refreshCandidates()
     }
 
-    /// Unknown words are corrected when a candidate is within the cost budget. Known but very
-    /// rare words are also corrected when a cheap edit yields a far more common word ("teh" -> "the").
-    static func shouldCorrect(_ word: String, best: Corrector.Candidate, corrector: Corrector) -> Bool {
-        let typedFrequency = corrector.lexicon.frequency(of: word)
-        if typedFrequency > 0 {
-            return best.cost <= 1.0 && log10(best.frequency) - log10(typedFrequency) >= 2.5
+    /// Picks the replacement for a committed word, or nil to keep it as typed.
+    ///
+    /// 1. Diacritic restoration: a word spelled the same apart from accents wins when it is the
+    ///    more common spelling ("dekuji" -> "děkuji"), even if the accent-less form is in the list.
+    /// 2. Unknown words are corrected when a candidate is within the cost budget.
+    /// 3. Known but very rare words are corrected when a cheap edit yields a far more common
+    ///    word ("teh" -> "the").
+    static func correction(for word: String, candidates: [Corrector.Candidate], corrector: Corrector) -> Corrector.Candidate? {
+        let lower = word.lowercased()
+        let typedFrequency = corrector.lexicon.frequency(of: lower)
+        let folded = Diacritics.fold(lower)
+        if let variant = candidates.first(where: { $0.word != lower && Diacritics.fold($0.word) == folded }),
+           variant.frequency > typedFrequency {
+            return variant
         }
-        return best.cost <= corrector.maxCost(forLength: word.unicodeScalars.count)
+        guard let best = candidates.first(where: { $0.word != lower }) else { return nil }
+        if typedFrequency > 0 {
+            let ok = best.cost <= 1.0 && log10(best.frequency) - log10(typedFrequency) >= 2.5
+            return ok ? best : nil
+        }
+        return best.cost <= corrector.maxCost(forLength: word.unicodeScalars.count) ? best : nil
     }
 
     private func isCommitValid(_ commit: Commit) -> Bool {

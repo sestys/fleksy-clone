@@ -163,6 +163,15 @@ final class ComposerTests: XCTestCase {
         XCTAssertEqual(doc.text, "Ahoj jak se máš dělám ")
     }
 
+    func testDiacriticRestorationBeatsAccentlessDictionaryEntry() {
+        let (c, doc) = make(language: .czech)
+        c.handle(.shiftTap)
+        type("dekuji ", into: c)
+        XCTAssertEqual(doc.text, "děkuji ")
+        c.handle(.swipe(.down))
+        XCTAssertEqual(doc.text, "dekuji ")
+    }
+
     func testLanguageSwitchChangesCorrection() {
         let (c, doc) = make(language: .english)
         var switched: Language?

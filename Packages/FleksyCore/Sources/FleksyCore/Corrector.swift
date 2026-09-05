@@ -56,12 +56,19 @@ public struct Corrector: Sendable {
         let limit = maxCost(forLength: n)
         let maxLenDelta = Int(limit.rounded(.up))
 
+        // Prune: the candidate's first letter must be the typed first letter, its keyboard
+        // neighbour, or the second typed letter (a transposition). Typos rarely break this.
+        var allowedFirst: Set<UInt32> = [af[0]]
+        if n > 1 { allowedFirst.insert(af[1]) }
+        if let nb = neighbours[af[0]] { allowedFirst.formUnion(nb) }
+
         var results: [Candidate] = []
         var buffer = DPBuffer(rows: n + 1, cols: n + maxLenDelta + 1)
         for len in max(1, n - maxLenDelta)...(n + maxLenDelta) {
             guard let indices = lexicon.byLength[len] else { continue }
             for i in indices {
                 let e = lexicon.entries[i]
+                guard let first = e.folded.first, allowedFirst.contains(first) else { continue }
                 let cost = editCost(a, af, e.scalars, e.folded, limit: limit, buffer: &buffer)
                 guard cost <= limit else { continue }
                 var score = -cost + frequencyWeight * e.logFrequency
