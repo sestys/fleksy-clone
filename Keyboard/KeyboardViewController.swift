@@ -8,6 +8,7 @@ final class KeyboardViewController: UIInputViewController {
     private var keyboardView: KeyboardView!
     private var candidateBar: CandidateBarView!
     private var settingsPanel: SettingsPanelView?
+    private var emojiPanel: EmojiPanelView?
     private var heightConstraint: NSLayoutConstraint?
     private var layer: KeyboardLayer = .letters
 
@@ -157,7 +158,30 @@ final class KeyboardViewController: UIInputViewController {
         rebuildLayout()
     }
 
+    private func closeEmojiPanel() {
+        emojiPanel?.removeFromSuperview()
+        emojiPanel = nil
+    }
+
+    private func toggleEmojiPanel() {
+        if emojiPanel != nil { closeEmojiPanel(); return }
+        settingsPanel?.removeFromSuperview()
+        settingsPanel = nil
+        let panel = EmojiPanelView(theme: settings.theme, recent: settings.recentEmoji)
+        panel.delegate = self
+        panel.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(panel)
+        NSLayoutConstraint.activate([
+            panel.topAnchor.constraint(equalTo: keyboardView.topAnchor),
+            panel.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            panel.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            panel.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+        ])
+        emojiPanel = panel
+    }
+
     private func toggleSettingsPanel() {
+        closeEmojiPanel()
         if let panel = settingsPanel {
             panel.removeFromSuperview()
             settingsPanel = nil
@@ -201,6 +225,8 @@ extension KeyboardViewController: KeyboardViewDelegate {
             setLayer(.letters)
         case .globe:
             break
+        case .emoji:
+            toggleEmojiPanel()
         }
         syncUI()
     }
@@ -236,6 +262,28 @@ extension KeyboardViewController: KeyboardViewDelegate {
 
     func keyboardView(_ view: KeyboardView, globeTouched event: UIEvent?) {
         handleInputModeList(from: view, with: event ?? UIEvent())
+    }
+}
+
+// MARK: - EmojiPanelDelegate
+
+extension KeyboardViewController: EmojiPanelDelegate {
+    func emojiPanel(_ panel: EmojiPanelView, didPick emoji: String) {
+        composer.handle(.character(emoji))
+        settings.noteEmojiUsed(emoji)
+        panel.recent = settings.recentEmoji
+        syncUI()
+    }
+
+    func emojiPanelDidTapBackspace(_ panel: EmojiPanelView) {
+        composer.handle(.backspace)
+        syncUI()
+    }
+
+    func emojiPanelDidClose(_ panel: EmojiPanelView) {
+        closeEmojiPanel()
+        composer.handle(.contextChanged)
+        syncUI()
     }
 }
 

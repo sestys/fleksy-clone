@@ -29,6 +29,7 @@ final class LayoutTests: XCTestCase {
         let space = l.rows[3].first { $0.action == .space }!
         XCTAssertEqual(space.label, "Čeština")
         XCTAssertEqual(l.rowWidth(3), 10, accuracy: 0.001)
+        XCTAssertEqual(l.rows[3].map(\.action), [.numbers, .globe, .emoji, .space, .character("."), .enter])
     }
 
     func testAllRowsFitTenUnits() {

@@ -108,6 +108,7 @@ final class KeyboardView: UIView, UIInputViewAudioFeedback {
         case .symbols: return "key_symbols"
         case .letters: return "key_letters"
         case .globe: return "key_globe"
+        case .emoji: return "key_emoji"
         }
     }
 
@@ -141,44 +142,81 @@ final class KeyboardView: UIView, UIInputViewAudioFeedback {
         let separator = UIColor(theme.separator).cgColor
         ctx.setStrokeColor(separator)
         ctx.setLineWidth(1 / UIScreen.main.scale)
+        let bottomRow = rows.count - 1
         for kf in keyFrames {
-            if pressed.contains(kf.key) {
-                ctx.setFillColor(UIColor(theme.pressed).cgColor)
-                ctx.fill(kf.frame)
-            }
             let f = kf.frame
-            do {
-                ctx.move(to: CGPoint(x: f.maxX, y: f.minY + f.height * 0.28))
-                ctx.addLine(to: CGPoint(x: f.maxX, y: f.maxY - f.height * 0.28))
-                ctx.strokePath()
+            if kf.row == bottomRow {
+                // Fleksy bottom bar: rounded keys with small gaps.
+                let inset = f.insetBy(dx: 3, dy: 5)
+                let path = UIBezierPath(roundedRect: inset, cornerRadius: 6).cgPath
+                let fill = kf.key.action == .space ? theme.spaceKey : theme.bottomKey
+                ctx.setFillColor(UIColor(fill).cgColor)
+                ctx.addPath(path); ctx.fillPath()
+                if pressed.contains(kf.key) {
+                    ctx.setFillColor(UIColor(theme.pressed).cgColor)
+                    ctx.addPath(path); ctx.fillPath()
+                }
+            } else {
+                if pressed.contains(kf.key) {
+                    ctx.setFillColor(UIColor(theme.pressed).cgColor)
+                    ctx.fill(f)
+                }
+                if theme.separator.a > 0 {
+                    ctx.move(to: CGPoint(x: f.maxX, y: f.minY + f.height * 0.28))
+                    ctx.addLine(to: CGPoint(x: f.maxX, y: f.maxY - f.height * 0.28))
+                    ctx.strokePath()
+                }
             }
             drawLabel(for: kf, in: ctx)
         }
     }
 
+    private func symbolName(for key: Key) -> String? {
+        switch key.action {
+        case .shift: return shift == .locked ? "capslock.fill" : (shift == .on ? "shift.fill" : "shift")
+        case .backspace: return "delete.left.fill"
+        case .enter: return returnLabel == "↵" ? "return" : nil
+        case .globe: return "globe"
+        case .emoji: return "face.smiling"
+        default: return nil
+        }
+    }
+
     private func drawLabel(for kf: KeyFrame, in ctx: CGContext) {
         let key = kf.key
+        let special = UIColor(theme.specialKeyText)
+        if let name = symbolName(for: key),
+           let image = UIImage(systemName: name, withConfiguration: UIImage.SymbolConfiguration(pointSize: 19, weight: .bold)) {
+            let tinted = image.withTintColor(special, renderingMode: .alwaysOriginal)
+            let size = tinted.size
+            tinted.draw(in: CGRect(x: kf.frame.midX - size.width / 2, y: kf.frame.midY - size.height / 2, width: size.width, height: size.height))
+            return
+        }
+        if key.action == .space {
+            let name = NSMutableAttributedString()
+            let arrow: [NSAttributedString.Key: Any] = [.font: UIFont.systemFont(ofSize: 12, weight: .regular), .foregroundColor: special.withAlphaComponent(0.55)]
+            let main: [NSAttributedString.Key: Any] = [.font: UIFont.systemFont(ofSize: 14, weight: .semibold), .foregroundColor: special]
+            name.append(NSAttributedString(string: "◁   ", attributes: arrow))
+            name.append(NSAttributedString(string: key.label, attributes: main))
+            name.append(NSAttributedString(string: "   ▷", attributes: arrow))
+            let size = name.size()
+            name.draw(at: CGPoint(x: kf.frame.midX - size.width / 2, y: kf.frame.midY - size.height / 2))
+            return
+        }
         var text = key.label
-        var font = UIFont.systemFont(ofSize: 23, weight: .regular)
+        var font = UIFont.systemFont(ofSize: 22, weight: .semibold)
         var color = UIColor(theme.keyText)
         switch key.action {
         case .character(let c):
             if shift != .off, c.rangeOfCharacter(from: .letters) != nil { text = c.uppercased() }
-            if c.rangeOfCharacter(from: .letters) == nil { font = .systemFont(ofSize: 21, weight: .regular) }
-        case .shift:
-            text = shift == .locked ? "⇪" : "⇧"
-            font = .systemFont(ofSize: 22, weight: shift == .off ? .regular : .bold)
-            color = shift == .off ? UIColor(theme.specialKeyText) : UIColor(theme.keyText)
-        case .space:
-            font = .systemFont(ofSize: 13, weight: .medium)
-            color = UIColor(theme.specialKeyText)
+            if c.rangeOfCharacter(from: .letters) == nil { font = .systemFont(ofSize: 21, weight: .semibold) }
         case .enter:
             text = returnLabel
-            font = returnLabel.count > 1 ? .systemFont(ofSize: 15, weight: .medium) : .systemFont(ofSize: 22)
-            color = UIColor(theme.specialKeyText)
+            font = .systemFont(ofSize: 15, weight: .semibold)
+            color = special
         default:
-            font = .systemFont(ofSize: 16, weight: .medium)
-            color = UIColor(theme.specialKeyText)
+            font = .systemFont(ofSize: 16, weight: .semibold)
+            color = special
         }
         let attrs: [NSAttributedString.Key: Any] = [.font: font, .foregroundColor: color]
         let size = (text as NSString).size(withAttributes: attrs)

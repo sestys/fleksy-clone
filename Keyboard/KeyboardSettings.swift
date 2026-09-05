@@ -16,10 +16,11 @@ final class KeyboardSettings {
         static let autoCapitalize = "autoCapitalize"
         static let keyHeight = "keyHeight"
         static let clicks = "clicks"
+        static let recentEmoji = "recentEmoji"
     }
 
     var theme: Theme {
-        get { Theme.named(defaults.string(forKey: Keys.theme) ?? Theme.fleksyBlue.id) }
+        get { Theme.named(defaults.string(forKey: Keys.theme) ?? Theme.classic.id) }
         set { defaults.set(newValue.id, forKey: Keys.theme) }
     }
 
@@ -64,6 +65,17 @@ final class KeyboardSettings {
     var clicks: Bool {
         get { defaults.object(forKey: Keys.clicks) as? Bool ?? true }
         set { defaults.set(newValue, forKey: Keys.clicks) }
+    }
+
+    var recentEmoji: [String] {
+        get { defaults.stringArray(forKey: Keys.recentEmoji) ?? [] }
+        set { defaults.set(Array(newValue.prefix(40)), forKey: Keys.recentEmoji) }
+    }
+
+    func noteEmojiUsed(_ e: String) {
+        var list = recentEmoji.filter { $0 != e }
+        list.insert(e, at: 0)
+        recentEmoji = list
     }
 
     var composerSettings: ComposerSettings {

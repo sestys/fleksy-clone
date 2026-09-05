@@ -120,8 +120,32 @@ final class FleksyCloneUITests: XCTestCase {
         XCTAssertFalse(app.otherElements["fleksy.settingsPanel"].exists)
         takeScreenshot("midnight")
         app.buttons["fleksy.settingsButton"].tap()
-        app.buttons["fleksy.theme_blue"].tap()
+        app.buttons["fleksy.theme_classic"].tap()
         app.buttons["fleksy.settingsDone"].tap()
+    }
+
+    func testEmojiPickerAndPeriodKey() {
+        ensureLanguage("English")
+        typeText("hi.")
+        XCTAssertEqual(fieldText, "Hi.")
+        tapKey("key_emoji")
+        let panel = app.otherElements["fleksy.emojiPanel"]
+        XCTAssertTrue(panel.waitForExistence(timeout: 3))
+        takeScreenshot("emoji")
+        let smile = app.descendants(matching: .any).matching(identifier: "emoji_😀").firstMatch
+        XCTAssertTrue(smile.waitForExistence(timeout: 3))
+        smile.tap()
+        XCTAssertEqual(fieldText, "Hi.😀")
+        app.buttons["fleksy.emojiCategory_nature"].tap()
+        let bear = app.descendants(matching: .any).matching(identifier: "emoji_🐵").firstMatch
+        XCTAssertTrue(bear.waitForExistence(timeout: 3))
+        bear.tap()
+        XCTAssertEqual(fieldText, "Hi.😀🐵")
+        app.buttons["fleksy.emojiBackspace"].tap()
+        XCTAssertEqual(fieldText, "Hi.😀")
+        app.buttons["fleksy.emojiABC"].tap()
+        XCTAssertFalse(panel.exists)
+        XCTAssertTrue(key("key_a").waitForExistence(timeout: 2))
     }
 
     func ensureLanguage(_ name: String) {

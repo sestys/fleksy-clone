@@ -11,6 +11,7 @@ public enum KeyAction: Equatable, Hashable, Sendable {
     case symbols      // switch to the #+= layer
     case letters      // back to ABC
     case globe        // next system keyboard
+    case emoji        // open the emoji picker
 }
 
 /// A single key in a layout row. `width` is relative: 1.0 = a standard letter key.
@@ -113,7 +114,7 @@ public enum Layouts {
         let row1 = keys(rowStrings[0])
         let row2 = keys(rowStrings[1])
         let row3 = [Key(.shift, label: "⇧", width: 1.5)] + keys(rowStrings[2]) + [Key(.backspace, label: "⌫", width: 1.5)]
-        let row4 = bottomRow(toggle: Key(.numbers, label: "123", width: 1.5), language: language)
+        let row4 = bottomRow(toggle: Key(.numbers, label: "123", width: 1.25), language: language)
         return KeyboardLayout(rows: [row1, row2, row3, row4])
     }
 
@@ -121,7 +122,7 @@ public enum Layouts {
         let row1 = "1234567890".map { Key.char(String($0)) }
         let row2 = ["-", "/", ":", ";", "(", ")", "$", "&", "@", "\""].map { Key.char($0) }
         let row3 = [Key(.symbols, label: "#+=", width: 1.5)] + [".", ",", "?", "!", "'", "%"].map { Key.char($0, accents: []) } + [Key(.backspace, label: "⌫", width: 1.5)]
-        let row4 = bottomRow(toggle: Key(.letters, label: "ABC", width: 1.5), language: language)
+        let row4 = bottomRow(toggle: Key(.letters, label: "ABC", width: 1.25), language: language)
         return KeyboardLayout(rows: [row1, row2, row3, row4])
     }
 
@@ -129,16 +130,19 @@ public enum Layouts {
         let row1 = ["[", "]", "{", "}", "#", "%", "^", "*", "+", "="].map { Key.char($0) }
         let row2 = ["_", "\\", "|", "~", "<", ">", "€", "£", "¥", "•"].map { Key.char($0) }
         let row3 = [Key(.numbers, label: "123", width: 1.5)] + [".", ",", "?", "!", "'", "`"].map { Key.char($0) } + [Key(.backspace, label: "⌫", width: 1.5)]
-        let row4 = bottomRow(toggle: Key(.letters, label: "ABC", width: 1.5), language: language)
+        let row4 = bottomRow(toggle: Key(.letters, label: "ABC", width: 1.25), language: language)
         return KeyboardLayout(rows: [row1, row2, row3, row4])
     }
 
+    /// Fleksy bottom bar: 123, (globe), emoji, space with the language name, period, return.
+    /// The globe is dropped by the keyboard when the system shows its own switch key.
     static func bottomRow(toggle: Key, language: Language) -> [Key] {
         [
             toggle,
-            Key(.globe, label: "🌐", width: 1.25),
-            Key(.space, label: language.displayName, width: 4.75),
-            Key(.character(","), label: ",", width: 1.0),
+            Key(.globe, label: "🌐", width: 1.0),
+            Key(.emoji, label: "☺", width: 1.0),
+            Key(.space, label: language.displayName, width: 4.25),
+            Key(.character("."), label: ".", width: 1.0),
             Key(.enter, label: "↵", width: 1.5),
         ]
     }

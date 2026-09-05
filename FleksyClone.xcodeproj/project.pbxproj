@@ -14,12 +14,14 @@
 		5B0BEDFEFB48AD402561B87E /* SettingsPanelView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 637781E7B18811124EF150CB /* SettingsPanelView.swift */; };
 		621C55D676EC7BCD2F7AAFBD /* ProxyDocument.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4286B478588265AB1A324410 /* ProxyDocument.swift */; };
 		6B563DF31812F1FF891249C7 /* CandidateBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C2D1C76C1B7EBF5535D3629 /* CandidateBarView.swift */; };
+		6FFFCCFCA9509CFB5491CEA1 /* EmojiPanelView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F86B98296C0AC99872F46B08 /* EmojiPanelView.swift */; };
 		71BDA19D55CA2F2C3772EB59 /* FleksyCloneUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9420CCE1007F02BD624B5142 /* FleksyCloneUITests.swift */; };
 		73913FA2B10E51121A21B43F /* FleksyCore in Frameworks */ = {isa = PBXBuildFile; productRef = 08DF7E66B4844CDB80FB09A4 /* FleksyCore */; };
 		7E5FEF3F2667149E29FC0ED2 /* FleksyKeyboard.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 1A16452EA52C772E7E5F91F9 /* FleksyKeyboard.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		98D3066FAC8E2AE33282401F /* AccentPopupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5FE0E8274CAA952312A0AA9 /* AccentPopupView.swift */; };
 		A80594C82FF71EBA95B10D29 /* FleksyCore in Frameworks */ = {isa = PBXBuildFile; productRef = EFD9EA8E8E0796F7830A7311 /* FleksyCore */; };
 		AC9CBABBFEB5C64015247975 /* FleksyCloneApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13258F51904C1537710E3965 /* FleksyCloneApp.swift */; };
+		B46D1588E111C07E9EB18DAE /* EmojiData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86A2FEA3AD1E9757AFA52C83 /* EmojiData.swift */; };
 		BFB9F06B11CA95A13F1C7696 /* KeyboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E118211035B175E74A2661E /* KeyboardView.swift */; };
 		CFB32F427F4AEE6CD67D5B2D /* FleksyCore in Frameworks */ = {isa = PBXBuildFile; productRef = 1BFE732083CD7DE19CE8A868 /* FleksyCore */; };
 		E852A370B59685EF9CA9DB71 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 019CC800977D29B015970DF7 /* ContentView.swift */; };
@@ -71,12 +73,14 @@
 		64321FE1E774C1723C0219EC /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		7215C994FEC3840EBEA738C7 /* UIColor+RGBA.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UIColor+RGBA.swift"; sourceTree = "<group>"; };
 		7E118211035B175E74A2661E /* KeyboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardView.swift; sourceTree = "<group>"; };
+		86A2FEA3AD1E9757AFA52C83 /* EmojiData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmojiData.swift; sourceTree = "<group>"; };
 		9420CCE1007F02BD624B5142 /* FleksyCloneUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FleksyCloneUITests.swift; sourceTree = "<group>"; };
 		9CCD39D6537379DAE1B65B8C /* FleksyClone.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = FleksyClone.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		CD79FF6875CFE17B435D0767 /* KeyboardSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardSettings.swift; sourceTree = "<group>"; };
 		D246A8672329DA19B27CC11F /* FleksyCloneUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = FleksyCloneUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		D5D4A13F3BC120F06410DA6E /* LexiconLoader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LexiconLoader.swift; sourceTree = "<group>"; };
 		F5FE0E8274CAA952312A0AA9 /* AccentPopupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccentPopupView.swift; sourceTree = "<group>"; };
+		F86B98296C0AC99872F46B08 /* EmojiPanelView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmojiPanelView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -168,6 +172,8 @@
 			children = (
 				F5FE0E8274CAA952312A0AA9 /* AccentPopupView.swift */,
 				0C2D1C76C1B7EBF5535D3629 /* CandidateBarView.swift */,
+				86A2FEA3AD1E9757AFA52C83 /* EmojiData.swift */,
+				F86B98296C0AC99872F46B08 /* EmojiPanelView.swift */,
 				64321FE1E774C1723C0219EC /* Info.plist */,
 				CD79FF6875CFE17B435D0767 /* KeyboardSettings.swift */,
 				7E118211035B175E74A2661E /* KeyboardView.swift */,
@@ -318,6 +324,8 @@
 			files = (
 				98D3066FAC8E2AE33282401F /* AccentPopupView.swift in Sources */,
 				6B563DF31812F1FF891249C7 /* CandidateBarView.swift in Sources */,
+				B46D1588E111C07E9EB18DAE /* EmojiData.swift in Sources */,
+				6FFFCCFCA9509CFB5491CEA1 /* EmojiPanelView.swift in Sources */,
 				24485AAAD4AFAA503B8B4BEC /* KeyboardSettings.swift in Sources */,
 				BFB9F06B11CA95A13F1C7696 /* KeyboardView.swift in Sources */,
 				EFFC50BCE7F8C6F3E7C04D5E /* KeyboardViewController.swift in Sources */,
