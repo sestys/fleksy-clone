@@ -27,28 +27,29 @@ final class ComposerTests: XCTestCase {
         c.handle(.shiftTap) // turn off auto-cap
         type("teh ", into: c)
         XCTAssertEqual(doc.text, "the ")
-        XCTAssertEqual(c.candidates.first?.text, "the")
-        XCTAssertTrue(c.candidates.first!.isSelected)
-        XCTAssertEqual(c.candidates.last?.text, "teh")
+        // Typed word always leftmost, the correction next to it and selected.
+        XCTAssertEqual(c.candidates[0].text, "teh")
+        XCTAssertFalse(c.candidates[0].isSelected)
+        XCTAssertEqual(c.candidates[1].text, "the")
+        XCTAssertTrue(c.candidates[1].isSelected)
     }
 
-    func testSwipeUpAndDownCycleCandidates() {
+    func testSwipeUpAndDownWalkCandidatesWithoutWrapping() {
         let (c, doc) = make()
         c.handle(.shiftTap)
-        type("hlelo ", into: c)
-        XCTAssertEqual(doc.text, "hello ")
-        c.handle(.swipe(.up))
-        XCTAssertNotEqual(doc.text, "hello ")
-        XCTAssertTrue(doc.text.hasSuffix(" "))
-        let second = doc.text
-        c.handle(.swipe(.down))
-        XCTAssertEqual(doc.text, "hello ")
-        c.handle(.swipe(.down)) // wraps to the original typed word
-        XCTAssertEqual(doc.text, "hlelo ")
+        type("helo ", into: c)                             // fixture: "help" (adjacent key) and "hello"
+        XCTAssertEqual(doc.text, "help ")
+        let options = c.candidates.map(\.text)
+        XCTAssertEqual(Array(options.prefix(3)), ["helo", "help", "hello"])
         c.handle(.swipe(.up))
         XCTAssertEqual(doc.text, "hello ")
+        for _ in 0..<10 { c.handle(.swipe(.up)) }        // never wraps around to the typed word
+        XCTAssertEqual(doc.text, options.last! + " ")
+        for _ in 0..<(options.count - 1) { c.handle(.swipe(.down)) }
+        XCTAssertEqual(doc.text, "helo ")                  // always ends at the typed word
+        XCTAssertNil(c.notice)
         c.handle(.swipe(.up))
-        XCTAssertEqual(doc.text, second)
+        XCTAssertEqual(doc.text, "help ")
     }
 
     func testSwipeUpKeepsCase() {
@@ -146,10 +147,17 @@ final class ComposerTests: XCTestCase {
         XCTAssertEqual(doc.text, "wprld ")
         XCTAssertEqual(c.notice, "learned")
         XCTAssertTrue(store.contains("wprld", language: .english))
-        c.handle(.swipe(.down))                  // back to normal cycling
-        XCTAssertNotEqual(doc.text, "wprld ")
+        c.handle(.swipe(.down))                  // forget it again
+        XCTAssertEqual(doc.text, "wprld ")
+        XCTAssertEqual(c.notice, "forgotten")
+        XCTAssertFalse(store.contains("wprld", language: .english))
+        c.handle(.swipe(.down))                  // and learn once more
+        XCTAssertEqual(c.notice, "learned")
+        XCTAssertTrue(store.contains("wprld", language: .english))
+        c.handle(.swipe(.up))                    // back to the correction
+        XCTAssertEqual(doc.text, "world ")
         XCTAssertNil(c.notice)
-        c.handle(.swipe(.up))
+        c.handle(.swipe(.down))
         XCTAssertEqual(doc.text, "wprld ")
         c.handle(.swipe(.right))                 // swipe right is still the period
         XCTAssertEqual(doc.text, "wprld. ")
@@ -165,20 +173,18 @@ final class ComposerTests: XCTestCase {
         XCTAssertEqual(doc2.text, "wprld ")
     }
 
-    func testReachingTypedWordBySwipeUpDoesNotLearn() {
+    func testSwipeUpNeverReachesTypedWord() {
         let store = InMemoryLearnedWords()
         let doc = FakeDocument()
         let c = Composer(document: doc, lexicons: TestLexicons.provider, learned: store, languages: [.english], settings: ComposerSettings())
         c.handle(.shiftTap)
         type("wprld ", into: c)
-        XCTAssertEqual(doc.text, "world ")
-        var ups = 0
-        while doc.text != "wprld " && ups < 10 { c.handle(.swipe(.up)); ups += 1 }
-        XCTAssertEqual(doc.text, "wprld ")
-        c.handle(.swipe(.down))                  // just cycles back, no learning
-        XCTAssertNil(c.notice)
+        for _ in 0..<10 {
+            c.handle(.swipe(.up))
+            XCTAssertNotEqual(doc.text, "wprld ")
+            XCTAssertNil(c.notice)
+        }
         XCTAssertFalse(store.contains("wprld", language: .english))
-        XCTAssertNotEqual(doc.text, "wprld ")
     }
 
     func testSwipeDownOnUncorrectedWordDoesNotLearn() {

@@ -77,9 +77,9 @@ final class FleksyCloneUITests: XCTestCase {
         swipe(dx: 120, dy: 0)
         XCTAssertEqual(fieldText, "Hello world ")
 
-        swipe(dx: 0, dy: -90)                  // swipe up = next candidate
-        XCTAssertNotEqual(fieldText, "Hello world ")
-        swipe(dx: 0, dy: 90)                   // swipe down = back
+        swipe(dx: 0, dy: 90)                   // swipe down = back to what was typed
+        XCTAssertEqual(fieldText, "Hello wprld ")
+        swipe(dx: 0, dy: -90)                  // swipe up = the correction again
         XCTAssertEqual(fieldText, "Hello world ")
 
         swipe(dx: -120, dy: 0)                 // swipe left = delete word
@@ -133,6 +133,7 @@ final class FleksyCloneUITests: XCTestCase {
         typeText("helo")
         swipe(dx: 120, dy: 0)
         XCTAssertEqual(fieldText, "Help ")     // real list: adjacent-key fix beats an insertion
+        XCTAssertEqual(app.buttons["fleksy.candidate0"].label, "Helo")   // typed word stays leftmost
         swipe(dx: 0, dy: 90)                   // swipe down: restore typed word
         XCTAssertEqual(fieldText, "Helo ")
         swipe(dx: 0, dy: 90)                   // swipe down again: learn it
@@ -140,6 +141,10 @@ final class FleksyCloneUITests: XCTestCase {
         XCTAssertTrue(app.buttons["fleksy.notice"].waitForExistence(timeout: 2))
         XCTAssertEqual(app.buttons["fleksy.notice"].label, "✓ learned")
         takeScreenshot("learned")
+        swipe(dx: 0, dy: 90)                   // and again: forget it
+        XCTAssertEqual(app.buttons["fleksy.notice"].label, "✓ forgotten")
+        swipe(dx: 0, dy: 90)                   // and again: learn it
+        XCTAssertEqual(app.buttons["fleksy.notice"].label, "✓ learned")
         typeText("helo")
         swipe(dx: 120, dy: 0)                  // no longer corrected
         XCTAssertEqual(fieldText, "Helo helo ")

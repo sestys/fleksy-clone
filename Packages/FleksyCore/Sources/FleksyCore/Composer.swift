@@ -57,6 +57,7 @@ public final class InMemoryLexicons: LexiconProvider {
 public protocol LearnedWordsStore: AnyObject {
     func contains(_ word: String, language: Language) -> Bool
     func add(_ word: String, language: Language)
+    func remove(_ word: String, language: Language)
 }
 
 public final class InMemoryLearnedWords: LearnedWordsStore {
@@ -64,22 +65,23 @@ public final class InMemoryLearnedWords: LearnedWordsStore {
     public init() {}
     public func contains(_ word: String, language: Language) -> Bool { sets[language]?.contains(word.lowercased()) ?? false }
     public func add(_ word: String, language: Language) { sets[language, default: []].insert(word.lowercased()) }
+    public func remove(_ word: String, language: Language) { sets[language]?.remove(word.lowercased()) }
 }
 
 /// The single place that mutates text. Implements the Fleksy editing model:
 /// autocorrect on commit, swipe up/down to swap the committed word, swipe left to
 /// delete a word, swipe right for space and double swipe for a period.
 public final class Composer {
+    /// A committed word and its alternatives. For a corrected word the options are
+    /// `[typed, correction, alternatives...]` so the typed word is always the leftmost item.
     struct Commit {
         var options: [String]
         var index: Int
         var trailing: String
         /// The word exactly as typed, before any correction.
         var typed: String
-        /// True when autocorrect replaced the typed word.
+        /// True when autocorrect replaced the typed word (the typed word is options[0]).
         var corrected: Bool
-        /// True when a swipe down (not up) landed on the typed word; the next swipe down learns it.
-        var reverted = false
         var current: String { options[index] }
     }
 
@@ -301,14 +303,14 @@ public final class Composer {
                 let replacement = Composer.applyCase(of: word, to: best.word)
                 document.deleteBackward(word.count)
                 document.insert(replacement)
-                options = [replacement] + alternatives.filter { $0 != replacement } + [word]
+                options = [word, replacement] + alternatives.filter { $0 != replacement }
                 corrected = true
             } else {
                 options = [word] + alternatives
             }
         }
         document.insert(trailing)
-        lastCommit = Commit(options: options, index: 0, trailing: trailing, typed: word, corrected: corrected)
+        lastCommit = Commit(options: options, index: corrected ? 1 : 0, trailing: trailing, typed: word, corrected: corrected)
         refreshCandidates()
     }
 
@@ -345,22 +347,22 @@ public final class Composer {
             replacePunctuation(run, with: ((run.index + delta) % n + n) % n)
             return
         }
-        if var commit = lastCommit, isCommitValid(commit) {
-            // Swipe down on a word that autocorrect changed: the first swipe restores what was
-            // typed (the cycle wraps to it); a second swipe down on the typed word learns it.
-            if delta < 0, commit.corrected, commit.reverted, commit.current == commit.typed {
-                learned.add(commit.typed, language: language)
-                commit.corrected = false
-                commit.reverted = false
-                lastCommit = commit
-                notice = "learned"
+        if let commit = lastCommit, isCommitValid(commit) {
+            // Swipe down walks left towards the typed word and never wraps. Once there, further
+            // swipes down on a corrected word alternate between learning and forgetting it.
+            if delta < 0, commit.corrected, commit.index == 0 {
+                if learned.contains(commit.typed, language: language) {
+                    learned.remove(commit.typed, language: language)
+                    notice = "forgotten"
+                } else {
+                    learned.add(commit.typed, language: language)
+                    notice = "learned"
+                }
                 refreshCandidates()
                 return
             }
-            guard commit.options.count > 1 else { return }
-            let n = commit.options.count
-            let newIndex = ((commit.index + delta) % n + n) % n
-            commit.reverted = delta < 0 && commit.options[newIndex] == commit.typed
+            let newIndex = max(0, min(commit.options.count - 1, commit.index + delta))
+            guard newIndex != commit.index else { return }
             replaceCommit(commit, with: newIndex)
             return
         }

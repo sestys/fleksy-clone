@@ -121,4 +121,10 @@ final class PersistentLearnedWords: LearnedWordsStore {
         cache.insert(entry)
         settings.learnedWords = settings.learnedWords + [entry]
     }
+
+    func remove(_ word: String, language: Language) {
+        let entry = "\(language.rawValue):\(word.lowercased())"
+        cache.remove(entry)
+        settings.learnedWords = settings.learnedWords.filter { $0 != entry }
+    }
 }

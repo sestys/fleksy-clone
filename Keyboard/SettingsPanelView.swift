@@ -147,7 +147,7 @@ final class SettingsPanelView: UIView {
 
         // Gesture cheat sheet
         stack.addArrangedSubview(label("GESTURES"))
-        let help = label("→ space   ←  delete word   ↑↓ change word (↓ on a corrected word restores it, ↓ again learns it)   ⇄ on space bar: language   ⇊ two fingers: hide", size: 12, weight: .regular)
+        let help = label("→ space   ←  delete word   ↑↓ change word (↓ ends on what you typed; ↓ again learns it, again forgets it)   ⇄ on space bar: language   ⇊ two fingers: hide", size: 12, weight: .regular)
         help.numberOfLines = 0
         stack.addArrangedSubview(help)
     }
