@@ -23,15 +23,22 @@ final class LexiconLoader: LexiconProvider {
         for l in languages { _ = lexicon(for: l) }
     }
 
+    private func text(_ resource: String, in bundle: Bundle) -> String? {
+        let url = bundle.url(forResource: resource, withExtension: "txt", subdirectory: "Dictionaries")
+            ?? bundle.url(forResource: resource, withExtension: "txt")
+        guard let url else { return nil }
+        return try? String(contentsOf: url, encoding: .utf8)
+    }
+
     private func load(_ language: Language) {
         let bundle = Bundle(for: LexiconLoader.self)
-        let url = bundle.url(forResource: language.lexiconResource, withExtension: "txt", subdirectory: "Dictionaries")
-            ?? bundle.url(forResource: language.lexiconResource, withExtension: "txt")
-        guard let url, let text = try? String(contentsOf: url, encoding: .utf8) else {
+        guard let words = text(language.lexiconResource, in: bundle) else {
             lock.lock(); loading.remove(language); lock.unlock()
             return
         }
-        let lex = Lexicon(language: language, text: text)
+        // Names come second so the word list wins wherever the two disagree.
+        let texts = [words, text(language.namesResource, in: bundle)].compactMap { $0 }
+        let lex = Lexicon(language: language, texts: texts)
         lock.lock()
         cache[language] = lex
         loading.remove(language)

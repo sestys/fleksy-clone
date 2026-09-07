@@ -85,6 +85,7 @@ public final class Lexicon: @unchecked Sendable {
         var order = [Int32](0..<Int32(parsed))
         let stores = scalarStore
         let bounds = offsets
+        let logFrequencies = self.logFrequencies
         order.sort { lhs, rhs in
             let l = Int(bounds[Int(lhs)])..<Int(bounds[Int(lhs) + 1])
             let r = Int(bounds[Int(rhs)])..<Int(bounds[Int(rhs) + 1])
@@ -94,9 +95,11 @@ public final class Lexicon: @unchecked Sendable {
                 i += 1; j += 1
             }
             if l.count != r.count { return l.count < r.count }
-            // Equal words: the earlier one wins, and the source lists are ordered by
-            // descending frequency, so that keeps the most frequent spelling.
-            return lhs < rhs
+            // Equal words: the higher frequency wins. Within one list that is the same
+            // as keeping the first, since the sources run most-frequent-first; across
+            // lists it lets the name list correct a spelling the corpus got wrong.
+            let lf = logFrequencies[Int(lhs)], rf = logFrequencies[Int(rhs)]
+            return lf == rf ? lhs < rhs : lf > rf
         }
 
         // Drop adjacent duplicates, which are now neighbours.
@@ -136,22 +139,32 @@ public final class Lexicon: @unchecked Sendable {
     }
 
     /// Parses the "word frequency" line format of the FrequencyWords lists.
+    public convenience init(language: Language, text: String, limit: Int = .max) {
+        self.init(language: language, texts: [text], limit: limit)
+    }
+
+    /// Builds one lexicon from several word lists, in order of authority: where the same
+    /// word appears twice the earlier list wins, so the main list decides and the name
+    /// list only fills gaps.
     ///
     /// Lines are consumed one at a time. Materialising them as an array first would cost
     /// more in allocator high-water than the finished lexicon does.
-    public convenience init(language: Language, text: String, limit: Int = .max) {
+    public convenience init(language: Language, texts: [String], limit: Int = .max) {
         var builder = Builder()
         // ~12 bytes of text per word, ~8 scalars per word: enough to avoid regrowth.
-        let estimate = min(limit, max(1024, text.utf8.count / 12))
+        let bytes = texts.reduce(0) { $0 + $1.utf8.count }
+        let estimate = min(limit, max(1024, bytes / 12))
         builder.reserve(words: estimate, scalars: estimate * 8)
         var added = 0
-        text.enumerateLines { line, stop in
-            guard added < limit else { stop = true; return }
-            let parts = line.split(separator: " ", maxSplits: 1)
-            guard let word = parts.first else { return }
-            let frequency = parts.count > 1 ? Double(parts[1]) ?? 1 : 1
-            builder.add(word.lowercased(), frequency: frequency)
-            added += 1
+        for text in texts {
+            text.enumerateLines { line, stop in
+                guard added < limit else { stop = true; return }
+                let parts = line.split(separator: " ", maxSplits: 1)
+                guard let word = parts.first else { return }
+                let frequency = parts.count > 1 ? Double(parts[1]) ?? 1 : 1
+                builder.add(word.lowercased(), frequency: frequency)
+                added += 1
+            }
         }
         self.init(language: language, builder: builder)
     }

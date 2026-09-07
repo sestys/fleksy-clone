@@ -27,7 +27,7 @@ Three things decide what a typed word becomes, in `Packages/FleksyCore`.
 **The word list** (`Lexicon`, `Corrector`). Weighted Damerau-Levenshtein against a
 frequency-ranked list per language, with diacritics costed as a near-free edit so
 "delam" reaches "dělám". Lists come from FrequencyWords (OpenSubtitles 2018), ~47k
-words each.
+words each, merged with a name list (below).
 
 **Where you actually tapped** (`SpatialModel`). The keyboard passes the touch point of
 every letter, not just the key it resolved to. A tap on the g/h border costs almost
@@ -47,11 +47,39 @@ still works and marks it permanently.
 Everything is on-device. The counts live in a JSON file in the extension's own container,
 never leave the phone, and "Forget what I've typed" in settings deletes them.
 
+## Names
+
+Because the word lists come from film subtitles, they knew the names that get *said in
+films* and not much else. English came off well — of the top 1000 US surnames only ~90
+were missing — but Czech was bad: of 32 common Czech names, 16 were absent and every one
+of those was mangled (Kučera → kamera, Adéla → dělá, Šárka → sakra, Novák → novak).
+
+`scripts/build-names.py` regenerates `names-{cs,en}.txt` from public name statistics
+(MV ČR for Czech, US Census 2010 for English; see `Resources/Dictionaries/LICENSE.txt`).
+The lists are loaded alongside the word list rather than merged into it, so the two keep
+their separate sources and licences. Adding them costs ~0.2 MB and no measurable latency.
+
+Three things turned out to matter more than the data itself:
+
+- **Diacritics are the whole point.** The commonly cited Czech name list is romanised;
+  adding `novak` without `novák` makes correction *worse*, not better.
+- **A name must never outrank a word it folds onto.** *Dostál* is a surname, but "dostal"
+  is the past tense of "get", and sakra, nic and pan are words long before they are
+  anyone's name. Names that collide with a more common word are ranked below it.
+- **Only the majority spelling.** The sources list spellings separately, so `Ondřej`
+  (60,248 people) and `Ondrej` (1,951) both appear. Adding the minority one shadows the
+  correct one — which is exactly how the first cut of this list made the keyboard
+  "correct" Ondřej into Ondrej.
+
+Measured over 3,600 common words and a typo of each: no ordinary word's correction
+changed in either language, and 4 typos per language now resolve to the name whose
+accent-free spelling they exactly match. `RealLexiconTests` covers both directions.
+
 ## Memory
 
 A keyboard extension is killed without warning — no crash log, iOS just switches back to
 the system keyboard — somewhere past ~50 MB. Both languages loaded used to account for
-33.5 MB of that; they now take 8.9 MB.
+33.5 MB of that; they now take ~9 MB, names included.
 
 Most of the saving was not in the layout but in the *build*: what the allocator touches
 while parsing is never returned to the OS, so an intermediate array of 47k Strings costs

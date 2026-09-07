@@ -91,6 +91,22 @@ final class LexiconStorageTests: XCTestCase {
         XCTAssertEqual(lex.completions(for: "zzz"), [])
     }
 
+    func testSeveralListsMergeWithTheHigherFrequencyWinning() {
+        // Two lists, as the keyboard loads them: words first, then names.
+        let lex = Lexicon(language: .czech, texts: ["dostal 80000\nnovak 276\n",
+                                                    "dostál 4000\nnovák 7989\n"])
+        XCTAssertEqual(lex.count, 4)
+        XCTAssertEqual(lex.frequency(of: "dostal"), 80000, accuracy: 80)
+        XCTAssertEqual(lex.frequency(of: "novák"), 7989, accuracy: 8)
+    }
+
+    func testALaterListCanCorrectAnEarlierOne() {
+        // Same word in both: the higher frequency stands, whichever list it came from.
+        let lex = Lexicon(language: .english, texts: ["word 10\n", "word 5000\n"])
+        XCTAssertEqual(lex.count, 1)
+        XCTAssertEqual(lex.frequency(of: "word"), 5000, accuracy: 5)
+    }
+
     func testLookupIsCaseAndAccentExact() {
         let lex = Lexicon(language: .czech, text: "být 100\nbyt 50\n")
         XCTAssertEqual(lex.count, 2)
