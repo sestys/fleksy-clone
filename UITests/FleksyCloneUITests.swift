@@ -237,19 +237,27 @@ final class FleksyCloneUITests: XCTestCase {
     }
 
     func testKeyboardHeightIsAdjustableFromSettings() {
-        let before = keyboard.frame.height
+        // Start from the default rather than from whatever the last run left behind.
+        // The height is a stored preference and reinstalling does not clear it, so a run
+        // that stopped early used to strand the slider at an extreme - and then "drag it
+        // to maximum and check the keyboard grew" had nowhere left to grow.
         app.buttons["fleksy.settingsButton"].tap()
         let slider = app.sliders["fleksy.keyHeight"]
         XCTAssertTrue(slider.waitForExistence(timeout: 2), "row height slider is not on screen without scrolling")
-        slider.adjust(toNormalizedSliderPosition: 1.0)
+        app.buttons["fleksy.keyHeightReset"].tap()
+        app.buttons["fleksy.settingsDone"].tap()
+        let standard = keyboard.frame.height
+
+        app.buttons["fleksy.settingsButton"].tap()
+        app.sliders["fleksy.keyHeight"].adjust(toNormalizedSliderPosition: 1.0)
         app.buttons["fleksy.settingsDone"].tap()
         let taller = keyboard.frame.height
-        XCTAssertGreaterThan(taller, before)
+        XCTAssertGreaterThan(taller, standard)
 
         app.buttons["fleksy.settingsButton"].tap()
         app.sliders["fleksy.keyHeight"].adjust(toNormalizedSliderPosition: 0.0)
         app.buttons["fleksy.settingsDone"].tap()
-        XCTAssertLessThan(keyboard.frame.height, taller)
+        XCTAssertLessThan(keyboard.frame.height, standard)
         takeScreenshot("short")
 
         // Back to the default so the other tests see a normal keyboard.
@@ -257,7 +265,7 @@ final class FleksyCloneUITests: XCTestCase {
         app.buttons["fleksy.keyHeightReset"].tap()
         takeScreenshot("settings-size")
         app.buttons["fleksy.settingsDone"].tap()
-        XCTAssertEqual(keyboard.frame.height, before, accuracy: 1)
+        XCTAssertEqual(keyboard.frame.height, standard, accuracy: 1)
     }
 
     func testSwipeDirectionToggleInvertsUpAndDown() {
