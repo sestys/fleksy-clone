@@ -16,6 +16,7 @@ final class KeyboardSettings {
         static let autoCapitalize = "autoCapitalize"
         static let keyHeight = "keyHeight"
         static let clicks = "clicks"
+        static let swipeDownForNext = "swipeDownForNext"
         static let recentEmoji = "recentEmoji"
     }
 
@@ -56,10 +57,23 @@ final class KeyboardSettings {
         set { defaults.set(newValue, forKey: Keys.autoCapitalize) }
     }
 
-    /// Height of one key row in points (portrait).
+    /// Height of one key row in points (portrait). `keyHeightRange` is what the
+    /// settings slider offers; 54 is roughly the stock iOS row height.
+    static let keyHeightRange: ClosedRange<Double> = 38...82
+    static let defaultKeyHeight: Double = 54
+
     var keyHeight: Double {
-        get { defaults.object(forKey: Keys.keyHeight) as? Double ?? 54 }
+        get {
+            let stored = defaults.object(forKey: Keys.keyHeight) as? Double ?? KeyboardSettings.defaultKeyHeight
+            return min(max(stored, KeyboardSettings.keyHeightRange.lowerBound), KeyboardSettings.keyHeightRange.upperBound)
+        }
         set { defaults.set(newValue, forKey: Keys.keyHeight) }
+    }
+
+    /// Swipe down = next suggestion, swipe up = back towards what you typed.
+    var swipeDownForNext: Bool {
+        get { defaults.object(forKey: Keys.swipeDownForNext) as? Bool ?? true }
+        set { defaults.set(newValue, forKey: Keys.swipeDownForNext) }
     }
 
     var clicks: Bool {
@@ -95,6 +109,7 @@ final class KeyboardSettings {
         s.autocorrect = autocorrect
         s.autoCapitalize = autoCapitalize
         s.czechQwertz = czechQwertz
+        s.swipeDownForNext = swipeDownForNext
         return s
     }
 }

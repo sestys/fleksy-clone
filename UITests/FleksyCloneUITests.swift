@@ -77,9 +77,9 @@ final class FleksyCloneUITests: XCTestCase {
         swipe(dx: 120, dy: 0)
         XCTAssertEqual(fieldText, "Hello world ")
 
-        swipe(dx: 0, dy: 90)                   // swipe down = back to what was typed
+        swipe(dx: 0, dy: -90)                  // swipe up = back to what was typed
         XCTAssertEqual(fieldText, "Hello wprld ")
-        swipe(dx: 0, dy: -90)                  // swipe up = the correction again
+        swipe(dx: 0, dy: 90)                   // swipe down = the correction again
         XCTAssertEqual(fieldText, "Hello world ")
 
         swipe(dx: -120, dy: 0)                 // swipe left = delete word
@@ -124,7 +124,7 @@ final class FleksyCloneUITests: XCTestCase {
         app.buttons["fleksy.settingsDone"].tap()
     }
 
-    func testSwipeDownRevertsAndLearnsCorrection() {
+    func testSwipeUpRevertsAndLearnsCorrection() {
         // Start from a clean user dictionary so the correction happens.
         app.buttons["fleksy.settingsButton"].tap()
         app.buttons["fleksy.clearLearned"].tap()
@@ -134,16 +134,16 @@ final class FleksyCloneUITests: XCTestCase {
         swipe(dx: 120, dy: 0)
         XCTAssertEqual(fieldText, "Help ")     // real list: adjacent-key fix beats an insertion
         XCTAssertEqual(app.buttons["fleksy.candidate0"].label, "Helo")   // typed word stays leftmost
-        swipe(dx: 0, dy: 90)                   // swipe down: restore typed word
+        swipe(dx: 0, dy: -90)                  // swipe up: restore typed word
         XCTAssertEqual(fieldText, "Helo ")
-        swipe(dx: 0, dy: 90)                   // swipe down again: learn it
+        swipe(dx: 0, dy: -90)                  // swipe up again: learn it
         XCTAssertEqual(fieldText, "Helo ")
         XCTAssertTrue(app.buttons["fleksy.notice"].waitForExistence(timeout: 2))
         XCTAssertEqual(app.buttons["fleksy.notice"].label, "✓ learned")
         takeScreenshot("learned")
-        swipe(dx: 0, dy: 90)                   // and again: forget it
+        swipe(dx: 0, dy: -90)                  // and again: forget it
         XCTAssertEqual(app.buttons["fleksy.notice"].label, "✓ forgotten")
-        swipe(dx: 0, dy: 90)                   // and again: learn it
+        swipe(dx: 0, dy: -90)                  // and again: learn it
         XCTAssertEqual(app.buttons["fleksy.notice"].label, "✓ learned")
         typeText("helo")
         swipe(dx: 120, dy: 0)                  // no longer corrected
@@ -188,5 +188,50 @@ final class FleksyCloneUITests: XCTestCase {
         att.name = name
         att.lifetime = .keepAlways
         add(att)
+    }
+
+    func testKeyboardHeightIsAdjustableFromSettings() {
+        let before = keyboard.frame.height
+        app.buttons["fleksy.settingsButton"].tap()
+        let slider = app.sliders["fleksy.keyHeight"]
+        XCTAssertTrue(slider.waitForExistence(timeout: 2), "row height slider is not on screen without scrolling")
+        slider.adjust(toNormalizedSliderPosition: 1.0)
+        app.buttons["fleksy.settingsDone"].tap()
+        let taller = keyboard.frame.height
+        XCTAssertGreaterThan(taller, before)
+
+        app.buttons["fleksy.settingsButton"].tap()
+        app.sliders["fleksy.keyHeight"].adjust(toNormalizedSliderPosition: 0.0)
+        app.buttons["fleksy.settingsDone"].tap()
+        XCTAssertLessThan(keyboard.frame.height, taller)
+        takeScreenshot("short")
+
+        // Back to the default so the other tests see a normal keyboard.
+        app.buttons["fleksy.settingsButton"].tap()
+        app.buttons["fleksy.keyHeightReset"].tap()
+        takeScreenshot("settings-size")
+        app.buttons["fleksy.settingsDone"].tap()
+        XCTAssertEqual(keyboard.frame.height, before, accuracy: 1)
+    }
+
+    func testSwipeDirectionToggleInvertsUpAndDown() {
+        ensureLanguage("English")
+        app.buttons["fleksy.settingsButton"].tap()
+        let toggle = app.switches["fleksy.swipeDownForNext"]
+        XCTAssertTrue(toggle.waitForExistence(timeout: 2))
+        toggle.tap()                           // back to the original Fleksy direction
+        app.buttons["fleksy.settingsDone"].tap()
+
+        typeText("wprld")
+        swipe(dx: 120, dy: 0)
+        XCTAssertEqual(fieldText, "World ")
+        swipe(dx: 0, dy: 90)                   // down now walks back to what was typed
+        XCTAssertEqual(fieldText, "Wprld ")
+        swipe(dx: 0, dy: -90)
+        XCTAssertEqual(fieldText, "World ")
+
+        app.buttons["fleksy.settingsButton"].tap()
+        app.switches["fleksy.swipeDownForNext"].tap()
+        app.buttons["fleksy.settingsDone"].tap()
     }
 }

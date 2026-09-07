@@ -37,6 +37,9 @@ public struct ComposerSettings: Equatable, Sendable {
     public var autoCapitalize = true
     public var doubleSpacePeriod = true
     public var czechQwertz = true
+    /// Swipe down picks the next suggestion and swipe up walks back towards the word
+    /// you typed. Set false for the original Fleksy direction (up = next).
+    public var swipeDownForNext = true
     public init() {}
 }
 
@@ -145,9 +148,9 @@ public final class Composer {
         case .swipe(.left):
             deletePreviousWord()
         case .swipe(.up):
-            cycleCommit(by: 1)
+            cycleCommit(by: settings.swipeDownForNext ? -1 : 1)
         case .swipe(.down):
-            cycleCommit(by: -1)
+            cycleCommit(by: settings.swipeDownForNext ? 1 : -1)
         case .backspace:
             if !document.textBeforeCursor.isEmpty { document.deleteBackward(1) }
             refreshCandidates()
@@ -366,10 +369,57 @@ public final class Composer {
             replaceCommit(commit, with: newIndex)
             return
         }
-        // Swiping up on a word still being typed: correct it in place, no space.
+        // Swiping "next" on a word still being typed: correct it in place, no space.
         if delta > 0, !currentWord.isEmpty {
             commitCurrentWord(trailing: "")
+            return
         }
+        // Nothing pending. Reach back to the last word already in the document and
+        // rebuild its alternatives, so its autocorrect can always be walked through
+        // again - even after the commit was dropped by typing on, tapping elsewhere or
+        // the host reporting a context change.
+        guard currentWord.isEmpty, let recovered = recoverPreviousWord() else { return }
+        let newIndex = max(0, min(recovered.options.count - 1, recovered.index + delta))
+        if newIndex == recovered.index {
+            lastCommit = recovered
+            refreshCandidates()
+        } else {
+            replaceCommit(recovered, with: newIndex)
+        }
+    }
+
+    /// Non-word characters that may sit between the cursor and the last word and still
+    /// be swallowed back when that word is swapped. Newlines are excluded: re-inserting
+    /// one can send a message.
+    private static let recoverableTrailing = Set<Unicode.Scalar>(" .,!?;:)\"'".unicodeScalars)
+
+    /// Rebuilds a `Commit` for the word before the cursor from the document alone.
+    /// `corrected` is false: we cannot know what was originally typed, so this restores
+    /// navigation of the alternatives but not the learn/forget gesture.
+    private func recoverPreviousWord() -> Commit? {
+        let scalars = Array(document.textBeforeCursor.unicodeScalars)
+        var i = scalars.count
+        var trailing: [Unicode.Scalar] = []
+        while i > 0, trailing.count < 4, Composer.recoverableTrailing.contains(scalars[i - 1]) {
+            trailing.append(scalars[i - 1])
+            i -= 1
+        }
+        var word: [Unicode.Scalar] = []
+        while i > 0, Composer.isWordScalar(scalars[i - 1]) {
+            word.append(scalars[i - 1])
+            i -= 1
+        }
+        guard !word.isEmpty else { return nil }
+        let typed = String(String.UnicodeScalarView(word.reversed()))
+        var options = [typed]
+        if let corrector = corrector(for: language), typed.count >= 2 {
+            options += corrector.candidates(for: typed)
+                .map { Composer.applyCase(of: typed, to: $0.word) }
+                .filter { $0.lowercased() != typed.lowercased() }
+        }
+        guard options.count > 1 else { return nil }
+        return Commit(options: options, index: 0, trailing: String(String.UnicodeScalarView(trailing.reversed())),
+                      typed: typed, corrected: false)
     }
 
     private func replaceCommit(_ commit: Commit, with newIndex: Int) {

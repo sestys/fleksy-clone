@@ -34,29 +34,29 @@ final class ComposerTests: XCTestCase {
         XCTAssertTrue(c.candidates[1].isSelected)
     }
 
-    func testSwipeUpAndDownWalkCandidatesWithoutWrapping() {
+    func testSwipeDownAndUpWalkCandidatesWithoutWrapping() {
         let (c, doc) = make()
         c.handle(.shiftTap)
         type("helo ", into: c)                             // fixture: "help" (adjacent key) and "hello"
         XCTAssertEqual(doc.text, "help ")
         let options = c.candidates.map(\.text)
         XCTAssertEqual(Array(options.prefix(3)), ["helo", "help", "hello"])
-        c.handle(.swipe(.up))
+        c.handle(.swipe(.down))
         XCTAssertEqual(doc.text, "hello ")
-        for _ in 0..<10 { c.handle(.swipe(.up)) }        // never wraps around to the typed word
+        for _ in 0..<10 { c.handle(.swipe(.down)) }      // never wraps around to the typed word
         XCTAssertEqual(doc.text, options.last! + " ")
-        for _ in 0..<(options.count - 1) { c.handle(.swipe(.down)) }
+        for _ in 0..<(options.count - 1) { c.handle(.swipe(.up)) }
         XCTAssertEqual(doc.text, "helo ")                  // always ends at the typed word
         XCTAssertNil(c.notice)
-        c.handle(.swipe(.up))
+        c.handle(.swipe(.down))
         XCTAssertEqual(doc.text, "help ")
     }
 
-    func testSwipeUpKeepsCase() {
+    func testSwipeUpBackToTypedWordKeepsCase() {
         let (c, doc) = make()
         type("Teh ", into: c)
         XCTAssertEqual(doc.text, "The ")
-        c.handle(.swipe(.down))
+        c.handle(.swipe(.up))
         XCTAssertEqual(doc.text, "Teh ")
     }
 
@@ -75,8 +75,8 @@ final class ComposerTests: XCTestCase {
         c.handle(.swipe(.right))
         XCTAssertEqual(doc.text, "Hello. ")
         XCTAssertEqual(c.shift, .on)
-        // After the auto period, swipes cycle punctuation (down wraps to the end of the cycle).
-        c.handle(.swipe(.down))
+        // After the auto period, swipes cycle punctuation (up wraps to the end of the cycle).
+        c.handle(.swipe(.up))
         XCTAssertEqual(doc.text, "Hello: ")
     }
 
@@ -90,29 +90,29 @@ final class ComposerTests: XCTestCase {
         XCTAssertEqual(doc.text, "Hello.. ")
     }
 
-    func testSwipeUpAfterPeriodCyclesPunctuation() {
+    func testSwipeAfterPeriodCyclesPunctuation() {
         let (c, doc) = make()
         type("hello  ", into: c)
         XCTAssertEqual(doc.text, "Hello. ")
         XCTAssertEqual(c.candidates.map(\.text), Composer.punctuationCycle)
         XCTAssertTrue(c.candidates[0].isSelected)
-        c.handle(.swipe(.up))
+        c.handle(.swipe(.down))
         XCTAssertEqual(doc.text, "Hello, ")
         XCTAssertEqual(c.shift, .off)
-        c.handle(.swipe(.up))
+        c.handle(.swipe(.down))
         XCTAssertEqual(doc.text, "Hello! ")
         XCTAssertEqual(c.shift, .on)
-        c.handle(.swipe(.down))
+        c.handle(.swipe(.up))
         XCTAssertEqual(doc.text, "Hello, ")
-        c.handle(.swipe(.down))
+        c.handle(.swipe(.up))
         XCTAssertEqual(doc.text, "Hello. ")
-        c.handle(.swipe(.down))
+        c.handle(.swipe(.up))
         XCTAssertEqual(doc.text, "Hello: ")
         c.handle(.selectCandidate(3))
         XCTAssertEqual(doc.text, "Hello? ")
         type("ok", into: c)
         XCTAssertEqual(doc.text, "Hello? Ok")
-        c.handle(.swipe(.up))          // corrects the word being typed, not punctuation
+        c.handle(.swipe(.down))        // corrects the word being typed, not punctuation
         XCTAssertEqual(doc.text, "Hello? Ok")
     }
 
@@ -122,7 +122,7 @@ final class ComposerTests: XCTestCase {
         XCTAssertEqual(doc.text, "Hello.. ")
         c.handle(.swipe(.right))
         XCTAssertEqual(doc.text, "Hello... ")
-        c.handle(.swipe(.up))
+        c.handle(.swipe(.down))
         XCTAssertEqual(doc.text, "Hello, ")
         c.handle(.space)
         XCTAssertEqual(doc.text, "Hello,, ")
@@ -131,7 +131,7 @@ final class ComposerTests: XCTestCase {
         XCTAssertEqual(doc.text, "Hello,, ")
     }
 
-    func testSwipeDownAfterCorrectionRevertsThenLearns() {
+    func testSwipeUpAfterCorrectionRevertsThenLearns() {
         let store = InMemoryLearnedWords()
         let doc = FakeDocument()
         let c = Composer(document: doc, lexicons: TestLexicons.provider, learned: store, languages: [.english], settings: ComposerSettings())
@@ -139,25 +139,25 @@ final class ComposerTests: XCTestCase {
         type("wprld", into: c)
         c.handle(.swipe(.right))
         XCTAssertEqual(doc.text, "world ")
-        c.handle(.swipe(.down))                  // restore what was typed
+        c.handle(.swipe(.up))                  // restore what was typed
         XCTAssertEqual(doc.text, "wprld ")
         XCTAssertNil(c.notice)
         XCTAssertFalse(store.contains("wprld", language: .english))
-        c.handle(.swipe(.down))                  // learn it
+        c.handle(.swipe(.up))                  // learn it
         XCTAssertEqual(doc.text, "wprld ")
         XCTAssertEqual(c.notice, "learned")
         XCTAssertTrue(store.contains("wprld", language: .english))
-        c.handle(.swipe(.down))                  // forget it again
+        c.handle(.swipe(.up))                  // forget it again
         XCTAssertEqual(doc.text, "wprld ")
         XCTAssertEqual(c.notice, "forgotten")
         XCTAssertFalse(store.contains("wprld", language: .english))
-        c.handle(.swipe(.down))                  // and learn once more
+        c.handle(.swipe(.up))                  // and learn once more
         XCTAssertEqual(c.notice, "learned")
         XCTAssertTrue(store.contains("wprld", language: .english))
-        c.handle(.swipe(.up))                    // back to the correction
+        c.handle(.swipe(.down))                    // back to the correction
         XCTAssertEqual(doc.text, "world ")
         XCTAssertNil(c.notice)
-        c.handle(.swipe(.down))
+        c.handle(.swipe(.up))
         XCTAssertEqual(doc.text, "wprld ")
         c.handle(.swipe(.right))                 // swipe right is still the period
         XCTAssertEqual(doc.text, "wprld. ")
@@ -173,28 +173,28 @@ final class ComposerTests: XCTestCase {
         XCTAssertEqual(doc2.text, "wprld ")
     }
 
-    func testSwipeUpNeverReachesTypedWord() {
+    func testSwipeDownNeverReachesTypedWord() {
         let store = InMemoryLearnedWords()
         let doc = FakeDocument()
         let c = Composer(document: doc, lexicons: TestLexicons.provider, learned: store, languages: [.english], settings: ComposerSettings())
         c.handle(.shiftTap)
         type("wprld ", into: c)
         for _ in 0..<10 {
-            c.handle(.swipe(.up))
+            c.handle(.swipe(.down))
             XCTAssertNotEqual(doc.text, "wprld ")
             XCTAssertNil(c.notice)
         }
         XCTAssertFalse(store.contains("wprld", language: .english))
     }
 
-    func testSwipeDownOnUncorrectedWordDoesNotLearn() {
+    func testSwipeUpOnUncorrectedWordDoesNotLearn() {
         let store = InMemoryLearnedWords()
         let doc = FakeDocument()
         let c = Composer(document: doc, lexicons: TestLexicons.provider, learned: store, languages: [.english], settings: ComposerSettings())
         c.handle(.shiftTap)
         type("hello ", into: c)
-        c.handle(.swipe(.down))
-        c.handle(.swipe(.down))
+        c.handle(.swipe(.up))
+        c.handle(.swipe(.up))
         XCTAssertNil(c.notice)
         XCTAssertFalse(store.contains("hello", language: .english))
     }
@@ -237,9 +237,9 @@ final class ComposerTests: XCTestCase {
         c.handle(.backspace)
         c.handle(.backspace)
         XCTAssertEqual(doc.text, "worl")
-        c.handle(.swipe(.down)) // commit is gone: nothing to cycle
+        c.handle(.swipe(.up)) // commit is gone: nothing to cycle
         XCTAssertEqual(doc.text, "worl")
-        c.handle(.swipe(.up)) // corrects the word being typed, no space
+        c.handle(.swipe(.down)) // corrects the word being typed, no space
         XCTAssertEqual(doc.text, "world")
     }
 
@@ -257,7 +257,7 @@ final class ComposerTests: XCTestCase {
         type("wor", into: c)
         c.handle(.selectCandidate(1))
         XCTAssertEqual(doc.text, "world ")
-        c.handle(.swipe(.up))
+        c.handle(.swipe(.down))
         XCTAssertEqual(doc.text, "wor ")
     }
 
@@ -276,7 +276,7 @@ final class ComposerTests: XCTestCase {
         type("teh", into: c)
         c.handle(.character(","))
         XCTAssertEqual(doc.text, "the,")
-        c.handle(.swipe(.down))
+        c.handle(.swipe(.up))
         XCTAssertEqual(doc.text, "teh,")
     }
 
@@ -294,7 +294,7 @@ final class ComposerTests: XCTestCase {
         c.handle(.shiftTap)
         type("dekuji ", into: c)
         XCTAssertEqual(doc.text, "děkuji ")
-        c.handle(.swipe(.down))
+        c.handle(.swipe(.up))
         XCTAssertEqual(doc.text, "dekuji ")
     }
 
@@ -330,7 +330,7 @@ final class ComposerTests: XCTestCase {
         c.handle(.shiftTap)
         type("teh ", into: c)
         XCTAssertEqual(doc.text, "teh ")
-        c.handle(.swipe(.up))
+        c.handle(.swipe(.down))
         XCTAssertEqual(doc.text, "the ")
     }
 
@@ -341,5 +341,53 @@ final class ComposerTests: XCTestCase {
         c.handle(.enter)
         XCTAssertEqual(doc.text, "the\n")
         XCTAssertEqual(c.shift, .on)
+    }
+
+    func testSwipeDirectionCanBeInverted() {
+        var s = ComposerSettings()
+        s.swipeDownForNext = false           // original Fleksy direction
+        let (c, doc) = make(settings: s)
+        c.handle(.shiftTap)
+        type("teh ", into: c)
+        XCTAssertEqual(doc.text, "the ")
+        c.handle(.swipe(.down))              // now walks back to the typed word
+        XCTAssertEqual(doc.text, "teh ")
+        c.handle(.swipe(.up))
+        XCTAssertEqual(doc.text, "the ")
+    }
+
+    func testSwipeReachesBackToTheLastWordAfterTheCommitIsGone() {
+        let (c, doc) = make()
+        c.handle(.shiftTap)
+        type("teh ", into: c)
+        XCTAssertEqual(doc.text, "the ")
+        c.handle(.contextChanged)
+        c.handle(.character("x"))            // whatever dropped the commit
+        c.handle(.backspace)
+        XCTAssertEqual(doc.text, "the ")
+        XCTAssertTrue(c.candidates.isEmpty)
+        c.handle(.swipe(.up))                // reach back: the word and its options return
+        XCTAssertEqual(doc.text, "the ")
+        XCTAssertEqual(c.candidates.first?.text, "the")
+        XCTAssertTrue(c.candidates.count > 1)
+        c.handle(.swipe(.down))              // and can be walked again
+        XCTAssertNotEqual(doc.text, "the ")
+        c.handle(.swipe(.up))
+        XCTAssertEqual(doc.text, "the ")
+    }
+
+    func testSwipeDoesNotReachBackAcrossANewline() {
+        let (c, doc) = make("the\n")
+        c.handle(.swipe(.up))
+        c.handle(.swipe(.down))
+        XCTAssertEqual(doc.text, "the\n")
+    }
+
+    func testSwipeReachesBackOverPunctuation() {
+        let (c, doc) = make("hello world. ")
+        c.handle(.swipe(.down))
+        XCTAssertNotEqual(doc.text, "hello world. ")
+        XCTAssertTrue(doc.text.hasPrefix("hello "))
+        XCTAssertTrue(doc.text.hasSuffix(". "))
     }
 }

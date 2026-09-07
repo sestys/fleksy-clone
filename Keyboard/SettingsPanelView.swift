@@ -11,11 +11,14 @@ final class SettingsPanelView: UIView {
     weak var delegate: SettingsPanelDelegate?
     private let settings = KeyboardSettings.shared
     private var theme: Theme
+    private var helpLabel: UILabel?
     private let scroll = UIScrollView()
     private let stack = UIStackView()
     private var themeButtons: [UIButton] = []
     private let czechSwitch = UISwitch()
     private let englishSwitch = UISwitch()
+    private let heightSlider = UISlider()
+    private let heightValue = UILabel()
 
     init(theme: Theme) {
         self.theme = theme
@@ -77,6 +80,33 @@ final class SettingsPanelView: UIView {
         header.distribution = .equalSpacing
         stack.addArrangedSubview(header)
 
+        // Keyboard size
+        stack.addArrangedSubview(label("KEYBOARD SIZE"))
+        heightSlider.minimumValue = Float(KeyboardSettings.keyHeightRange.lowerBound)
+        heightSlider.maximumValue = Float(KeyboardSettings.keyHeightRange.upperBound)
+        heightSlider.value = Float(settings.keyHeight)
+        heightSlider.accessibilityIdentifier = "fleksy.keyHeight"
+        heightSlider.addTarget(self, action: #selector(heightChanged(_:)), for: .valueChanged)
+        heightValue.font = .monospacedDigitSystemFont(ofSize: 13, weight: .semibold)
+        heightValue.textColor = UIColor(theme.candidateSelected)
+        heightValue.textAlignment = .right
+        heightValue.accessibilityIdentifier = "fleksy.keyHeightValue"
+        heightValue.widthAnchor.constraint(equalToConstant: 62).isActive = true
+        let reset = UIButton(type: .system)
+        reset.setTitle("Reset", for: .normal)
+        reset.titleLabel?.font = .systemFont(ofSize: 13, weight: .semibold)
+        reset.tintColor = UIColor(theme.candidateSelected)
+        reset.accessibilityIdentifier = "fleksy.keyHeightReset"
+        reset.addTarget(self, action: #selector(heightReset), for: .touchUpInside)
+        let heightRow = UIStackView(arrangedSubviews: [label("Row height", size: 15, weight: .regular), heightSlider, heightValue, reset])
+        heightRow.axis = .horizontal
+        heightRow.alignment = .center
+        heightRow.spacing = 10
+        (heightRow.arrangedSubviews[0] as? UILabel)?.textColor = UIColor(theme.candidateSelected)
+        heightSlider.setContentHuggingPriority(.defaultLow, for: .horizontal)
+        stack.addArrangedSubview(heightRow)
+        updateHeightValue()
+
         // Theme swatches
         stack.addArrangedSubview(label("THEME"))
         let swatches = UIStackView()
@@ -127,13 +157,9 @@ final class SettingsPanelView: UIView {
         clicks.addTarget(self, action: #selector(clicksChanged(_:)), for: .valueChanged)
         stack.addArrangedSubview(row("Key clicks", control: clicks))
 
-        let slider = UISlider()
-        slider.minimumValue = 44; slider.maximumValue = 66
-        slider.value = Float(settings.keyHeight)
-        slider.widthAnchor.constraint(equalToConstant: 160).isActive = true
-        slider.accessibilityIdentifier = "fleksy.keyHeight"
-        slider.addTarget(self, action: #selector(heightChanged(_:)), for: .valueChanged)
-        stack.addArrangedSubview(row("Key height", control: slider))
+        let swap = UISwitch(); swap.isOn = settings.swipeDownForNext; swap.accessibilityIdentifier = "fleksy.swipeDownForNext"
+        swap.addTarget(self, action: #selector(swipeDirectionChanged(_:)), for: .valueChanged)
+        stack.addArrangedSubview(row("Swipe ↓ = next word", control: swap))
 
         // Learned words
         let forget = UIButton(type: .system)
@@ -147,9 +173,22 @@ final class SettingsPanelView: UIView {
 
         // Gesture cheat sheet
         stack.addArrangedSubview(label("GESTURES"))
-        let help = label("→ space   ←  delete word   ↑↓ change word (↓ ends on what you typed; ↓ again learns it, again forgets it)   ⇄ on space bar: language   ⇊ two fingers: hide", size: 12, weight: .regular)
+        let help = label(gestureHelp(), size: 12, weight: .regular)
         help.numberOfLines = 0
+        helpLabel = help
         stack.addArrangedSubview(help)
+    }
+
+    private func gestureHelp() -> String {
+        let next = settings.swipeDownForNext ? "↓" : "↑"
+        let back = settings.swipeDownForNext ? "↑" : "↓"
+        return "→ space   ← delete word   \(next) next suggestion   \(back) back towards what you typed (\(back) again on a corrected word learns it, again forgets it)   \(next)\(back) also reach back to the last word   ⇄ on space bar: language   ⇊ two fingers: hide"
+    }
+
+    private func rebuildGestureHelp() { helpLabel?.text = gestureHelp() }
+
+    private func updateHeightValue() {
+        heightValue.text = "\(Int(settings.keyHeight)) pt"
     }
 
     @objc private func closeTapped() { delegate?.settingsPanelDidClose(self) }
@@ -188,5 +227,22 @@ final class SettingsPanelView: UIView {
     @objc private func autocorrectChanged(_ s: UISwitch) { settings.autocorrect = s.isOn; delegate?.settingsPanelDidChange(self) }
     @objc private func autocapChanged(_ s: UISwitch) { settings.autoCapitalize = s.isOn; delegate?.settingsPanelDidChange(self) }
     @objc private func clicksChanged(_ s: UISwitch) { settings.clicks = s.isOn; delegate?.settingsPanelDidChange(self) }
-    @objc private func heightChanged(_ s: UISlider) { settings.keyHeight = Double(s.value.rounded()); delegate?.settingsPanelDidChange(self) }
+    @objc private func swipeDirectionChanged(_ s: UISwitch) {
+        settings.swipeDownForNext = s.isOn
+        rebuildGestureHelp()
+        delegate?.settingsPanelDidChange(self)
+    }
+
+    @objc private func heightChanged(_ s: UISlider) {
+        settings.keyHeight = Double(s.value.rounded())
+        updateHeightValue()
+        delegate?.settingsPanelDidChange(self)
+    }
+
+    @objc private func heightReset() {
+        settings.keyHeight = KeyboardSettings.defaultKeyHeight
+        heightSlider.setValue(Float(KeyboardSettings.defaultKeyHeight), animated: true)
+        updateHeightValue()
+        delegate?.settingsPanelDidChange(self)
+    }
 }

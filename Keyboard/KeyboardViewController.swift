@@ -43,6 +43,7 @@ final class KeyboardViewController: UIInputViewController {
         keyboardView = KeyboardView(layout: currentLayout(), theme: theme)
         keyboardView.delegate = self
         keyboardView.clicksEnabled = settings.clicks
+        keyboardView.hapticsEnabled = hasFullAccess
         keyboardView.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(keyboardView)
 
@@ -88,8 +89,9 @@ final class KeyboardViewController: UIInputViewController {
     private func totalHeight(width: CGFloat? = nil) -> CGFloat {
         let w = width ?? view.bounds.width
         let landscape = w > 500
-        let keyH = CGFloat(landscape ? min(settings.keyHeight, 40) : settings.keyHeight)
-        return barHeight + keyH * 4
+        // Landscape has far less room: keep the chosen size but scale it down and cap it.
+        let keyH = landscape ? min(settings.keyHeight * 0.72, 44) : settings.keyHeight
+        return barHeight + CGFloat(keyH) * 4
     }
 
     private func currentLayout() -> KeyboardLayout {
@@ -312,6 +314,7 @@ extension KeyboardViewController: SettingsPanelDelegate {
         composer.invalidateCorrectors()
         lexicons.preload(settings.languages)
         keyboardView.clicksEnabled = settings.clicks
+        keyboardView.hapticsEnabled = hasFullAccess
         applyTheme()
         panel.backgroundColor = UIColor(settings.theme.candidateBar)
         rebuildLayout()
