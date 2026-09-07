@@ -5,15 +5,17 @@ protocol EmojiPanelDelegate: AnyObject {
     func emojiPanel(_ panel: EmojiPanelView, didPick emoji: String)
     func emojiPanelDidTapBackspace(_ panel: EmojiPanelView)
     func emojiPanelDidClose(_ panel: EmojiPanelView)
+    /// The recent emoji, most used first. Asked for when the recent tab is opened, so
+    /// that the order is settled before any tapping starts and stays put during it.
+    func emojiPanelRecentEmoji(_ panel: EmojiPanelView) -> [String]
 }
 
 /// Fleksy-style emoji picker: a grid for one category at a time, category tabs along the
 /// bottom with ABC on the left and backspace on the right, plus a "recent" category.
 final class EmojiPanelView: UIView, UICollectionViewDataSource, UICollectionViewDelegateFlowLayout {
     weak var delegate: EmojiPanelDelegate?
-    var recent: [String] {
-        didSet { if selectedCategory == 0 { collection.reloadData() } }
-    }
+    /// Ordering is deliberately frozen while this tab is on screen; see the delegate.
+    private var recent: [String]
 
     private let theme: Theme
     private let collection: UICollectionView
@@ -104,6 +106,9 @@ final class EmojiPanelView: UIView, UICollectionViewDataSource, UICollectionView
     }
 
     @objc private func tabTapped(_ b: UIButton) {
+        // Re-sort only on the way in. Picking an emoji updates the counts behind us, but
+        // the grid keeps the order it opened with until the tab is opened again.
+        if b.tag == 0, let fresh = delegate?.emojiPanelRecentEmoji(self) { recent = fresh }
         selectedCategory = b.tag
         updateTabs()
         collection.reloadData()

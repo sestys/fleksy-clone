@@ -296,9 +296,14 @@ extension KeyboardViewController: KeyboardViewDelegate {
 extension KeyboardViewController: EmojiPanelDelegate {
     func emojiPanel(_ panel: EmojiPanelView, didPick emoji: String) {
         composer.handle(.character(emoji))
+        // Counted now, reordered later: the panel re-reads this when the recent tab is
+        // next opened, so the grid does not shuffle under a finger picking several.
         settings.noteEmojiUsed(emoji)
-        panel.recent = settings.recentEmoji
         syncUI()
+    }
+
+    func emojiPanelRecentEmoji(_ panel: EmojiPanelView) -> [String] {
+        settings.recentEmoji
     }
 
     func emojiPanelDidTapBackspace(_ panel: EmojiPanelView) {

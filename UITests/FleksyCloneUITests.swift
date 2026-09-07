@@ -174,6 +174,52 @@ final class FleksyCloneUITests: XCTestCase {
         XCTAssertTrue(key("key_a").waitForExistence(timeout: 2))
     }
 
+    /// Tapping a recent emoji used to send it to the front, shifting everything else
+    /// under the finger. It must now stay where it is, and only re-sort on the way back in.
+    func testRecentEmojiKeepTheirPlaceWhileBeingTapped() {
+        ensureLanguage("English")
+        tapKey("key_emoji")
+        let panel = app.otherElements["fleksy.emojiPanel"]
+        XCTAssertTrue(panel.waitForExistence(timeout: 3))
+
+        // Build up a recent list, then open it.
+        let smile = app.descendants(matching: .any).matching(identifier: "emoji_😀").firstMatch
+        XCTAssertTrue(smile.waitForExistence(timeout: 3))
+        smile.tap()
+        app.buttons["fleksy.emojiCategory_nature"].tap()
+        let bear = app.descendants(matching: .any).matching(identifier: "emoji_🐵").firstMatch
+        XCTAssertTrue(bear.waitForExistence(timeout: 3))
+        bear.tap()
+        app.buttons["fleksy.emojiCategory_recent"].tap()
+
+        func recentCells() -> [XCUIElement] {
+            let all = app.descendants(matching: .any)
+                .matching(NSPredicate(format: "identifier BEGINSWITH 'emoji_'"))
+            return (0..<all.count).map { all.element(boundBy: $0) }
+        }
+        let before = recentCells()
+        XCTAssertGreaterThanOrEqual(before.count, 2, "need a couple of recents to test with")
+
+        // Tap the second one repeatedly: it becomes the most used, but must not move.
+        let second = before[1]
+        let identifier = second.identifier
+        let frame = second.frame
+        for _ in 0..<3 { second.tap() }
+
+        let after = recentCells()
+        XCTAssertEqual(after[1].identifier, identifier, "a tapped emoji jumped to a new position")
+        XCTAssertEqual(after[1].frame, frame, "the recent grid moved under the finger")
+        XCTAssertEqual(after[0].identifier, before[0].identifier, "the rest of the grid shifted")
+
+        // Leaving and re-entering the tab is when the order is allowed to settle.
+        app.buttons["fleksy.emojiCategory_nature"].tap()
+        app.buttons["fleksy.emojiCategory_recent"].tap()
+        let resorted = recentCells().map(\.identifier)
+        let position = resorted.firstIndex(of: identifier)
+        XCTAssertNotNil(position)
+        XCTAssertLessThanOrEqual(position ?? .max, 1, "using an emoji should raise it on the way back in")
+    }
+
     func ensureLanguage(_ name: String) {
         for _ in 0..<2 {
             if key("key_space").label == name { return }

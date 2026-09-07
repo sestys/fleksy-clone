@@ -17,7 +17,8 @@ final class KeyboardSettings {
         static let keyHeight = "keyHeight"
         static let clicks = "clicks"
         static let swipeDownForNext = "swipeDownForNext"
-        static let recentEmoji = "recentEmoji"
+        static let recentEmoji = "recentEmoji"   // legacy most-recent-first list
+        static let emojiUses = "emojiUses"
     }
 
     var theme: Theme {
@@ -81,15 +82,29 @@ final class KeyboardSettings {
         set { defaults.set(newValue, forKey: Keys.clicks) }
     }
 
-    var recentEmoji: [String] {
-        get { defaults.stringArray(forKey: Keys.recentEmoji) ?? [] }
-        set { defaults.set(Array(newValue.prefix(40)), forKey: Keys.recentEmoji) }
+    private var emojiUsage: EmojiUsage {
+        get {
+            if let stored = defaults.dictionary(forKey: Keys.emojiUses) as? [String: [Int]] {
+                return EmojiUsage(stored: stored)
+            }
+            // First run after the upgrade: carry over the list the old version kept.
+            return EmojiUsage.migrating(fromMostRecentFirst: defaults.stringArray(forKey: Keys.recentEmoji) ?? [])
+        }
+        set {
+            defaults.set(newValue.stored, forKey: Keys.emojiUses)
+            defaults.removeObject(forKey: Keys.recentEmoji)
+        }
     }
 
+    /// Emoji for the recent tab, most used first. This is a snapshot on purpose: the
+    /// picker re-reads it when the tab is opened and not while it is being tapped, so
+    /// emoji never move out from under a finger picking several in a row.
+    var recentEmoji: [String] { emojiUsage.ordered() }
+
     func noteEmojiUsed(_ e: String) {
-        var list = recentEmoji.filter { $0 != e }
-        list.insert(e, at: 0)
-        recentEmoji = list
+        var usage = emojiUsage
+        usage.note(e, at: Int(Date().timeIntervalSince1970))
+        emojiUsage = usage
     }
 
     // MARK: Learned words (legacy)
