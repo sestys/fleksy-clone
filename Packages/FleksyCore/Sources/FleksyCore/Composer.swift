@@ -56,21 +56,6 @@ public final class InMemoryLexicons: LexiconProvider {
     public func lexicon(for language: Language) -> Lexicon? { map[language] }
 }
 
-/// Words the user explicitly taught the keyboard (swipe right twice after a correction).
-public protocol LearnedWordsStore: AnyObject {
-    func contains(_ word: String, language: Language) -> Bool
-    func add(_ word: String, language: Language)
-    func remove(_ word: String, language: Language)
-}
-
-public final class InMemoryLearnedWords: LearnedWordsStore {
-    private var sets: [Language: Set<String>] = [:]
-    public init() {}
-    public func contains(_ word: String, language: Language) -> Bool { sets[language]?.contains(word.lowercased()) ?? false }
-    public func add(_ word: String, language: Language) { sets[language, default: []].insert(word.lowercased()) }
-    public func remove(_ word: String, language: Language) { sets[language]?.remove(word.lowercased()) }
-}
-
 /// The single place that mutates text. Implements the Fleksy editing model:
 /// autocorrect on commit, swipe up/down to swap the committed word, swipe left to
 /// delete a word, swipe right for space and double swipe for a period.
@@ -85,6 +70,9 @@ public final class Composer {
         var typed: String
         /// True when autocorrect replaced the typed word (the typed word is options[0]).
         var corrected: Bool
+        /// The word this one followed, for the personal bigram counts. Swapping the
+        /// committed word has to move the pair count off the old word and onto the new.
+        var previous: String?
         var current: String { options[index] }
     }
 
@@ -109,16 +97,19 @@ public final class Composer {
     public var onLanguageChange: ((Language) -> Void)?
 
     private let lexicons: LexiconProvider
-    private let learned: LearnedWordsStore
+    public let personal: PersonalModel
     private var correctors: [Language: Corrector] = [:]
     private var lastCommit: Commit?
+    /// Where each letter of the word being typed was tapped, in order. Kept in step with
+    /// `currentWord`, and abandoned the moment the two disagree.
+    private var touches: [TouchSample?] = []
     private var punctuation: PunctuationRun?
     private var lastEvent: InputEvent?
 
-    public init(document: TextDocument, lexicons: LexiconProvider, learned: LearnedWordsStore = InMemoryLearnedWords(), languages: [Language] = [.czech, .english], language: Language? = nil, settings: ComposerSettings = ComposerSettings()) {
+    public init(document: TextDocument, lexicons: LexiconProvider, personal: PersonalModel = PersonalModel(), languages: [Language] = [.czech, .english], language: Language? = nil, settings: ComposerSettings = ComposerSettings()) {
         self.document = document
         self.lexicons = lexicons
-        self.learned = learned
+        self.personal = personal
         self.languages = languages.isEmpty ? [.english] : languages
         self.language = language ?? self.languages[0]
         self.settings = settings
@@ -136,11 +127,13 @@ public final class Composer {
 
     // MARK: - Event handling
 
-    public func handle(_ event: InputEvent) {
+    /// `touch` is where the key was actually tapped, when the event came from one.
+    /// It is only meaningful for `.character` and is what drives the spatial model.
+    public func handle(_ event: InputEvent, touch: TouchSample? = nil) {
         notice = nil
         switch event {
         case .character(let c):
-            typeCharacter(c)
+            typeCharacter(c, touch: touch)
         case .space:
             insertSpace(fromSwipe: false)
         case .swipe(.right):
@@ -153,6 +146,7 @@ public final class Composer {
             cycleCommit(by: settings.swipeDownForNext ? 1 : -1)
         case .backspace:
             if !document.textBeforeCursor.isEmpty { document.deleteBackward(1) }
+            if !touches.isEmpty { touches.removeLast() }
             refreshCandidates()
             refreshAutoCapitalization()
         case .enter:
@@ -165,11 +159,15 @@ public final class Composer {
         case .selectCandidate(let i):
             selectCandidate(i)
         case .switchLanguage:
+            touches.removeAll()
             guard let idx = languages.firstIndex(of: language) else { return }
             language = languages[(idx + 1) % languages.count]
             onLanguageChange?(language)
             refreshCandidates()
         case .contextChanged:
+            // The host reports this after our own edits as well as after the user moves
+            // the caret, so only drop the taps once they no longer match the word.
+            if touches.count != currentWord.unicodeScalars.count { touches.removeAll() }
             refreshCandidates()
             refreshAutoCapitalization()
         }
@@ -180,6 +178,37 @@ public final class Composer {
 
     static func isWordScalar(_ s: Unicode.Scalar) -> Bool {
         CharacterSet.letters.contains(s) || s == "'" || s == "’"
+    }
+
+    /// The committed word before the one at the cursor, lowercased, or nil if there
+    /// isn't one on this side of a sentence boundary. This is the context the personal
+    /// bigram counts are keyed on.
+    func previousWord() -> String? {
+        let scalars = Array(document.textBeforeCursor.unicodeScalars)
+        var i = scalars.count
+        while i > 0, Composer.isWordScalar(scalars[i - 1]) { i -= 1 }
+        return Composer.wordBefore(scalars, i)
+    }
+
+    /// Reads the word ending just before `i`, skipping the separators in between.
+    /// Returns nil across a sentence end: "him. Tomorrow" is not a word pair.
+    static func wordBefore(_ scalars: [Unicode.Scalar], _ i: Int) -> String? {
+        var i = i
+        var sawSeparator = false
+        while i > 0, !isWordScalar(scalars[i - 1]) {
+            let s = scalars[i - 1]
+            if s == "\n" || s == "." || s == "!" || s == "?" { return nil }
+            sawSeparator = true
+            i -= 1
+        }
+        guard sawSeparator else { return nil }
+        var word: [Unicode.Scalar] = []
+        while i > 0, isWordScalar(scalars[i - 1]) {
+            word.append(scalars[i - 1])
+            i -= 1
+        }
+        guard !word.isEmpty else { return nil }
+        return String(String.UnicodeScalarView(word.reversed())).lowercased()
     }
 
     /// The letters immediately before the cursor.
@@ -212,7 +241,7 @@ public final class Composer {
         return word
     }
 
-    private func typeCharacter(_ raw: String) {
+    private func typeCharacter(_ raw: String, touch: TouchSample? = nil) {
         var c = raw
         if shift != .off, raw.rangeOfCharacter(from: .letters) != nil {
             c = raw.uppercased()
@@ -220,6 +249,7 @@ public final class Composer {
         let isWordChar = raw.unicodeScalars.allSatisfy(Composer.isWordScalar)
         if isWordChar {
             document.insert(c)
+            touches.append(touch)
             lastCommit = nil
             punctuation = nil
             if shift == .on { shift = .off }
@@ -293,16 +323,22 @@ public final class Composer {
         guard !word.isEmpty else {
             document.insert(trailing)
             lastCommit = nil
+            touches.removeAll()
             refreshCandidates()
             return
         }
+        // Read the context before touching the document, while the word is still there.
+        let previous = previousWord()
+        let prior = personal.prior(for: language, previous: previous)
+        let taps = touches
+        touches.removeAll()
         var options = [word]
         var corrected = false
         if let corrector = corrector(for: language), word.count >= 2 {
-            let cands = corrector.candidates(for: word)
+            let cands = corrector.candidates(for: word, context: CorrectionContext(personal: prior, touches: taps))
             let alternatives = cands.map { Composer.applyCase(of: word, to: $0.word) }.filter { $0.lowercased() != word.lowercased() }
-            let isLearned = learned.contains(word, language: language)
-            if settings.autocorrect, !isLearned, let best = Composer.correction(for: word, candidates: cands, corrector: corrector) {
+            if settings.autocorrect, !prior.isLearned(word),
+               let best = Composer.correction(for: word, candidates: cands, corrector: corrector, personal: prior) {
                 let replacement = Composer.applyCase(of: word, to: best.word)
                 document.deleteBackward(word.count)
                 document.insert(replacement)
@@ -313,7 +349,10 @@ public final class Composer {
             }
         }
         document.insert(trailing)
-        lastCommit = Commit(options: options, index: corrected ? 1 : 0, trailing: trailing, typed: word, corrected: corrected)
+        let commit = Commit(options: options, index: corrected ? 1 : 0, trailing: trailing, typed: word,
+                            corrected: corrected, previous: previous)
+        lastCommit = commit
+        personal.note(commit.current, after: previous, language: language)
         refreshCandidates()
     }
 
@@ -324,9 +363,12 @@ public final class Composer {
     /// 2. Unknown words are corrected when a candidate is within the cost budget.
     /// 3. Known but very rare words are corrected when a cheap edit yields a far more common
     ///    word ("teh" -> "the").
-    static func correction(for word: String, candidates: [Corrector.Candidate], corrector: Corrector) -> Corrector.Candidate? {
+    static func correction(for word: String, candidates: [Corrector.Candidate], corrector: Corrector,
+                           personal: PersonalPrior = .none) -> Corrector.Candidate? {
         let lower = word.lowercased()
-        let typedFrequency = corrector.lexicon.frequency(of: lower)
+        // A word the user types often counts as known even when we ship no entry for it,
+        // which is what stops their own vocabulary being corrected away.
+        let typedFrequency = max(corrector.lexicon.frequency(of: lower), personal.personalFrequency(of: lower))
         let folded = Diacritics.fold(lower)
         if let variant = candidates.first(where: { $0.word != lower && Diacritics.fold($0.word) == folded }),
            variant.frequency > typedFrequency {
@@ -354,11 +396,11 @@ public final class Composer {
             // Swipe down walks left towards the typed word and never wraps. Once there, further
             // swipes down on a corrected word alternate between learning and forgetting it.
             if delta < 0, commit.corrected, commit.index == 0 {
-                if learned.contains(commit.typed, language: language) {
-                    learned.remove(commit.typed, language: language)
+                if personal.isLearned(commit.typed, language: language) {
+                    personal.forget(commit.typed, language: language)
                     notice = "forgotten"
                 } else {
-                    learned.add(commit.typed, language: language)
+                    personal.learn(commit.typed, language: language)
                     notice = "learned"
                 }
                 refreshCandidates()
@@ -411,15 +453,17 @@ public final class Composer {
         }
         guard !word.isEmpty else { return nil }
         let typed = String(String.UnicodeScalarView(word.reversed()))
+        let previous = Composer.wordBefore(scalars, i)
         var options = [typed]
         if let corrector = corrector(for: language), typed.count >= 2 {
-            options += corrector.candidates(for: typed)
+            let context = CorrectionContext(personal: personal.prior(for: language, previous: previous))
+            options += corrector.candidates(for: typed, context: context)
                 .map { Composer.applyCase(of: typed, to: $0.word) }
                 .filter { $0.lowercased() != typed.lowercased() }
         }
         guard options.count > 1 else { return nil }
         return Commit(options: options, index: 0, trailing: String(String.UnicodeScalarView(trailing.reversed())),
-                      typed: typed, corrected: false)
+                      typed: typed, corrected: false, previous: previous)
     }
 
     private func replaceCommit(_ commit: Commit, with newIndex: Int) {
@@ -427,6 +471,9 @@ public final class Composer {
         var updated = commit
         updated.index = newIndex
         document.insert(updated.current + updated.trailing)
+        // The word the user settled on is the one worth counting, not the one we guessed.
+        personal.unnote(commit.current, after: commit.previous, language: language)
+        personal.note(updated.current, after: commit.previous, language: language)
         lastCommit = updated
         refreshCandidates()
         refreshAutoCapitalization()
@@ -445,13 +492,16 @@ public final class Composer {
         }
         let word = currentWord
         guard !word.isEmpty, candidates.indices.contains(i) else { return }
+        let previous = previousWord()
         let chosen = candidates[i].text
+        touches.removeAll()
         document.deleteBackward(word.count)
         document.insert(chosen + " ")
         var options = candidates.map { $0.text }
         options.remove(at: i)
         options.insert(chosen, at: 0)
-        lastCommit = Commit(options: options, index: 0, trailing: " ", typed: word, corrected: false)
+        lastCommit = Commit(options: options, index: 0, trailing: " ", typed: word, corrected: false, previous: previous)
+        personal.note(chosen, after: previous, language: language)
         refreshCandidates()
         refreshAutoCapitalization()
     }
@@ -469,6 +519,7 @@ public final class Composer {
         document.deleteBackward(count + wordCount)
         lastCommit = nil
         punctuation = nil
+        touches.removeAll()
         refreshCandidates()
         refreshAutoCapitalization()
     }

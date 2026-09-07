@@ -11,6 +11,7 @@ final class SettingsPanelView: UIView {
     weak var delegate: SettingsPanelDelegate?
     private let settings = KeyboardSettings.shared
     private var theme: Theme
+    private let personal: PersonalModel
     private var helpLabel: UILabel?
     private let scroll = UIScrollView()
     private let stack = UIStackView()
@@ -20,8 +21,9 @@ final class SettingsPanelView: UIView {
     private let heightSlider = UISlider()
     private let heightValue = UILabel()
 
-    init(theme: Theme) {
+    init(theme: Theme, personal: PersonalModel) {
         self.theme = theme
+        self.personal = personal
         super.init(frame: .zero)
         accessibilityIdentifier = "fleksy.settingsPanel"
         backgroundColor = UIColor(theme.candidateBar)
@@ -163,7 +165,7 @@ final class SettingsPanelView: UIView {
 
         // Learned words
         let forget = UIButton(type: .system)
-        forget.setTitle("Forget learned words (\(settings.learnedWords.count))", for: .normal)
+        forget.setTitle("Forget what I've typed (\(personal.adoptedWordCount()))", for: .normal)
         forget.titleLabel?.font = .systemFont(ofSize: 15, weight: .regular)
         forget.tintColor = UIColor(theme.candidateSelected)
         forget.contentHorizontalAlignment = .leading
@@ -194,8 +196,9 @@ final class SettingsPanelView: UIView {
     @objc private func closeTapped() { delegate?.settingsPanelDidClose(self) }
 
     @objc private func forgetTapped(_ b: UIButton) {
+        personal.reset()
         settings.clearLearnedWords()
-        b.setTitle("Forget learned words (0)", for: .normal)
+        b.setTitle("Forget what I've typed (0)", for: .normal)
         delegate?.settingsPanelDidChange(self)
     }
 

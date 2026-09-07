@@ -51,3 +51,50 @@ final class CorrectorTests: XCTestCase {
         XCTAssertEqual(c.candidates(for: "Help").first?.word, "help")
     }
 }
+
+/// The flat-buffer lexicon: the parts that used to be handled by Strings and a side index.
+final class LexiconStorageTests: XCTestCase {
+    func testWordsRoundTripThroughTheFlatStore() {
+        let lex = Lexicon(language: .czech, text: "děkuji 100\nzítra 50\nano 9\n")
+        XCTAssertEqual(lex.allWords, ["ano", "děkuji", "zítra"])
+        for w in lex.allWords { XCTAssertTrue(lex.contains(w), w) }
+    }
+
+    func testWordsAreSortedByScalarValue() {
+        let lex = Lexicon(language: .english, text: "beta 3\nalpha 2\ngamma 1\nAlpha 9\n")
+        XCTAssertEqual(lex.allWords, ["alpha", "beta", "gamma"])
+    }
+
+    func testDuplicatesCollapseKeepingTheFirstListing() {
+        // The source lists run most-frequent-first, so the first spelling seen wins.
+        let lex = Lexicon(language: .english, text: "the 100\nThe 40\nTHE 1\nthem 7\n")
+        XCTAssertEqual(lex.count, 2)
+        XCTAssertEqual(lex.frequency(of: "the"), 100, accuracy: 0.5)
+    }
+
+    func testNonLetterEntriesAreRejectedWholesale() {
+        let lex = Lexicon(language: .english, text: "ok 5\na1b 4\n<tag> 3\nfine 2\n")
+        XCTAssertEqual(lex.allWords, ["fine", "ok"])
+    }
+
+    func testFrequencySurvivesTheLogRoundTrip() {
+        let lex = Lexicon(language: .english, text: "common 2500000\nrare 3\n")
+        XCTAssertEqual(lex.frequency(of: "common"), 2_500_000, accuracy: 2500)
+        XCTAssertEqual(lex.frequency(of: "rare"), 3, accuracy: 0.01)
+        XCTAssertEqual(lex.frequency(of: "absent"), 0)
+    }
+
+    func testCompletionsSpanTheSortedOrder() {
+        let lex = Lexicon(language: .english, text: "work 90\nword 80\nworld 70\nwore 60\nother 50\n")
+        XCTAssertEqual(lex.completions(for: "wor", limit: 3), ["work", "word", "world"])
+        XCTAssertEqual(lex.completions(for: "work"), [])
+        XCTAssertEqual(lex.completions(for: "zzz"), [])
+    }
+
+    func testLookupIsCaseAndAccentExact() {
+        let lex = Lexicon(language: .czech, text: "být 100\nbyt 50\n")
+        XCTAssertEqual(lex.count, 2)
+        XCTAssertTrue(lex.contains("BÝT"))
+        XCTAssertEqual(lex.frequency(of: "byt"), 50, accuracy: 0.5)
+    }
+}

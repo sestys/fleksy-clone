@@ -20,6 +20,45 @@ Czech + English with diacritic-aware correction ("delam" → "dělám").
 | Double-tap shift | caps lock |
 | Tap the dot left of the suggestions | settings: keyboard size, theme, languages, QWERTZ/QWERTY, autocorrect, swipe direction |
 
+## Autocorrect
+
+Three things decide what a typed word becomes, in `Packages/FleksyCore`.
+
+**The word list** (`Lexicon`, `Corrector`). Weighted Damerau-Levenshtein against a
+frequency-ranked list per language, with diacritics costed as a near-free edit so
+"delam" reaches "dělám". Lists come from FrequencyWords (OpenSubtitles 2018), ~47k
+words each.
+
+**Where you actually tapped** (`SpatialModel`). The keyboard passes the touch point of
+every letter, not just the key it resolved to. A tap on the g/h border costs almost
+nothing to reread as either letter, while one dead in the middle of g is expensive to
+overrule — so you can type quickly without aiming. This replaces the old flat "these two
+keys are adjacent" rule; a key the finger was demonstrably nowhere near is no longer
+treated as a cheap substitution. It also made correction *faster* (5.3 → 3.4 ms/word),
+because confident taps let the edit-distance early exit fire sooner.
+
+**What you type** (`PersonalModel`). Every committed word and word pair is counted, so
+the keyboard learns your vocabulary without any shipped data and in any language. A word
+used twice becomes a suggestion; a word used often stops being corrected away; a pair you
+have written before is preferred in that position only. Counts halve every 60 days so old
+habits fade, and are capped at 3000 words / 6000 pairs (~0.05 MB). Swiping to learn a word
+still works and marks it permanently.
+
+Everything is on-device. The counts live in a JSON file in the extension's own container,
+never leave the phone, and "Forget what I've typed" in settings deletes them.
+
+## Memory
+
+A keyboard extension is killed without warning — no crash log, iOS just switches back to
+the system keyboard — somewhere past ~50 MB. Both languages loaded used to account for
+33.5 MB of that; they now take 8.9 MB.
+
+Most of the saving was not in the layout but in the *build*: what the allocator touches
+while parsing is never returned to the OS, so an intermediate array of 47k Strings costs
+as much as keeping one. `Lexicon` therefore streams the word list line by line straight
+into flat scalar buffers, sorts an index permutation rather than the words, and keeps no
+per-word allocations at all. `testLexiconMemoryFootprint` guards the result.
+
 ## Keyboard size
 
 The first section of the in-keyboard settings sets the row height (38-82 pt, default 54),

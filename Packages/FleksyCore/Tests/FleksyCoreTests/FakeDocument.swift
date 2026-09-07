@@ -14,6 +14,13 @@ final class FakeDocument: TextDocument {
     var text: String { before + after }
 }
 
+/// Feeds a string through a composer one key at a time.
+func type(_ s: String, into c: Composer) {
+    for ch in s {
+        if ch == " " { c.handle(.space) } else { c.handle(.character(String(ch))) }
+    }
+}
+
 enum TestLexicons {
     static let english = Lexicon(language: .english, words: [
         ("the", 1000), ("hello", 500), ("help", 400), ("world", 450), ("word", 300), ("words", 120),

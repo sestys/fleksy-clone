@@ -4,7 +4,7 @@ import FleksyCore
 final class KeyboardViewController: UIInputViewController {
     private let settings = KeyboardSettings.shared
     private let lexicons = LexiconLoader()
-    private let learned = PersistentLearnedWords()
+    private let personal = PersonalModel(store: PersonalStoreFile())
     private var composer: Composer!
     private var keyboardView: KeyboardView!
     private var candidateBar: CandidateBarView!
@@ -17,8 +17,9 @@ final class KeyboardViewController: UIInputViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
+        adoptLegacyLearnedWords()
         let document = ProxyDocument { [unowned self] in self.textDocumentProxy }
-        composer = Composer(document: document, lexicons: lexicons, learned: learned, languages: settings.languages,
+        composer = Composer(document: document, lexicons: lexicons, personal: personal, languages: settings.languages,
                             language: settings.currentLanguage, settings: settings.composerSettings)
         composer.onLanguageChange = { [weak self] lang in
             guard let self else { return }
@@ -71,6 +72,27 @@ final class KeyboardViewController: UIInputViewController {
         heightConstraint?.constant = totalHeight()
         composer.handle(.contextChanged)
         syncUI()
+    }
+
+    override func viewWillDisappear(_ animated: Bool) {
+        super.viewWillDisappear(animated)
+        // The extension can be killed without further notice, so write out what the
+        // personal model has picked up since the last periodic save.
+        personal.flush()
+    }
+
+    /// Moves words taught to an earlier version, which kept a flat allow-list in
+    /// UserDefaults, into the personal model. Runs once: the old list is cleared after.
+    private func adoptLegacyLearnedWords() {
+        let stored = settings.learnedWords
+        guard !stored.isEmpty else { return }
+        let words: [(String, Language)] = stored.compactMap { entry in
+            let parts = entry.split(separator: ":", maxSplits: 1)
+            guard parts.count == 2, let language = Language(rawValue: String(parts[0])) else { return nil }
+            return (String(parts[1]), language)
+        }
+        personal.adoptLegacyLearnedWords(words)
+        settings.clearLearnedWords()
     }
 
     override func viewWillTransition(to size: CGSize, with coordinator: UIViewControllerTransitionCoordinator) {
@@ -191,7 +213,7 @@ final class KeyboardViewController: UIInputViewController {
             settingsPanel = nil
             return
         }
-        let panel = SettingsPanelView(theme: settings.theme)
+        let panel = SettingsPanelView(theme: settings.theme, personal: personal)
         panel.delegate = self
         panel.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(panel)
@@ -208,10 +230,10 @@ final class KeyboardViewController: UIInputViewController {
 // MARK: - KeyboardViewDelegate
 
 extension KeyboardViewController: KeyboardViewDelegate {
-    func keyboardView(_ view: KeyboardView, didTap key: Key) {
+    func keyboardView(_ view: KeyboardView, didTap key: Key, at touch: TouchSample?) {
         switch key.action {
         case .character(let c):
-            composer.handle(.character(c))
+            composer.handle(.character(c), touch: touch)
         case .shift:
             composer.handle(.shiftTap)
         case .backspace:
@@ -308,7 +330,6 @@ extension KeyboardViewController: CandidateBarDelegate {
 
 extension KeyboardViewController: SettingsPanelDelegate {
     func settingsPanelDidChange(_ panel: SettingsPanelView) {
-        learned.reload()
         composer.settings = settings.composerSettings
         composer.setLanguages(settings.languages, current: settings.currentLanguage)
         composer.invalidateCorrectors()

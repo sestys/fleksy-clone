@@ -2,7 +2,9 @@ import UIKit
 import FleksyCore
 
 protocol KeyboardViewDelegate: AnyObject {
-    func keyboardView(_ view: KeyboardView, didTap key: Key)
+    /// `touch` is where the key was tapped, for the spatial model. It is nil for taps
+    /// the user did not aim (auto-repeat) and for keys that are not letters.
+    func keyboardView(_ view: KeyboardView, didTap key: Key, at touch: TouchSample?)
     func keyboardViewDidDoubleTapShift(_ view: KeyboardView)
     func keyboardView(_ view: KeyboardView, didSwipe direction: SwipeDirection, fingers: Int, startedOn key: Key?)
     func keyboardView(_ view: KeyboardView, didPickAccent accent: String)
@@ -40,6 +42,11 @@ final class KeyboardView: UIView, UIInputViewAudioFeedback {
         let frame: CGRect
     }
     private(set) var keyFrames: [KeyFrame] = []
+
+    /// Key geometry in the form the corrector wants, rebuilt whenever the frames are.
+    /// This is what lets a tap be read as the key it landed *nearest*, not just the key
+    /// it landed inside.
+    private(set) var spatial = SpatialModel()
 
     /// How much of a short row's slack an edge key takes compared with an inner key.
     /// 1 spreads it perfectly evenly; this leaves A and L a little wider without the row
@@ -125,6 +132,12 @@ final class KeyboardView: UIView, UIInputViewAudioFeedback {
             }
         }
         keyFrames = frames
+        spatial = SpatialModel(keys: frames.compactMap { kf in
+            guard case .character(let c) = kf.key.action, c.unicodeScalars.count == 1 else { return nil }
+            return SpatialModel.KeyBox(character: c.lowercased(),
+                                       centerX: kf.frame.midX, centerY: kf.frame.midY,
+                                       width: kf.frame.width, height: kf.frame.height)
+        })
         rebuildAccessibility()
     }
 
@@ -363,10 +376,10 @@ final class KeyboardView: UIView, UIInputViewAudioFeedback {
         info.timer = Timer.scheduledTimer(withTimeInterval: 0.4, repeats: false) { [weak self, weak info] _ in
             guard let self, let info else { return }
             info.repeated = true
-            self.delegate?.keyboardView(self, didTap: key)
+            self.delegate?.keyboardView(self, didTap: key, at: nil)
             info.timer = Timer.scheduledTimer(withTimeInterval: 0.075, repeats: true) { [weak self] _ in
                 guard let self else { return }
-                self.delegate?.keyboardView(self, didTap: key)
+                self.delegate?.keyboardView(self, didTap: key, at: nil)
             }
         }
     }
@@ -420,14 +433,21 @@ final class KeyboardView: UIView, UIInputViewAudioFeedback {
                     delegate?.keyboardViewDidDoubleTapShift(self)
                 } else {
                     lastShiftTap = timestamp
-                    delegate?.keyboardView(self, didTap: key)
+                    delegate?.keyboardView(self, didTap: key, at: nil)
                 }
             } else {
-                delegate?.keyboardView(self, didTap: key)
+                // The touch-down point, not where the finger ended up: that is what was aimed at.
+                delegate?.keyboardView(self, didTap: key, at: sample(for: key, at: info.start))
             }
         case .swipe(let dir):
             delegate?.keyboardView(self, didSwipe: dir, fingers: 1, startedOn: key)
         }
+    }
+
+    /// Reads a tap on a letter key as the set of keys it might have been.
+    private func sample(for key: Key, at point: CGPoint) -> TouchSample? {
+        guard case .character(let c) = key.action, c.unicodeScalars.count == 1 else { return nil }
+        return spatial.sample(x: Double(point.x), y: Double(point.y), typed: c)
     }
 
     // MARK: Accent popup

@@ -92,11 +92,12 @@ final class KeyboardSettings {
         recentEmoji = list
     }
 
-    // MARK: Learned words
+    // MARK: Learned words (legacy)
 
     private static let learnedKey = "learnedWords"
 
-    /// Stored as "cs:word" / "en:word".
+    /// Words taught to an earlier version, stored as "cs:word" / "en:word". Read once at
+    /// launch and handed to the personal model, then cleared; nothing writes here now.
     var learnedWords: [String] {
         get { defaults.stringArray(forKey: KeyboardSettings.learnedKey) ?? [] }
         set { defaults.set(newValue, forKey: KeyboardSettings.learnedKey) }
@@ -111,35 +112,5 @@ final class KeyboardSettings {
         s.czechQwertz = czechQwertz
         s.swipeDownForNext = swipeDownForNext
         return s
-    }
-}
-
-/// LearnedWordsStore backed by the extension's UserDefaults.
-final class PersistentLearnedWords: LearnedWordsStore {
-    private let settings: KeyboardSettings
-    private var cache: Set<String>
-
-    init(settings: KeyboardSettings = .shared) {
-        self.settings = settings
-        cache = Set(settings.learnedWords)
-    }
-
-    func reload() { cache = Set(settings.learnedWords) }
-
-    func contains(_ word: String, language: Language) -> Bool {
-        cache.contains("\(language.rawValue):\(word.lowercased())")
-    }
-
-    func add(_ word: String, language: Language) {
-        let entry = "\(language.rawValue):\(word.lowercased())"
-        guard !cache.contains(entry) else { return }
-        cache.insert(entry)
-        settings.learnedWords = settings.learnedWords + [entry]
-    }
-
-    func remove(_ word: String, language: Language) {
-        let entry = "\(language.rawValue):\(word.lowercased())"
-        cache.remove(entry)
-        settings.learnedWords = settings.learnedWords.filter { $0 != entry }
     }
 }

@@ -8,12 +8,6 @@ final class ComposerTests: XCTestCase {
         return (c, doc)
     }
 
-    func type(_ s: String, into c: Composer) {
-        for ch in s {
-            if ch == " " { c.handle(.space) } else { c.handle(.character(String(ch))) }
-        }
-    }
-
     func testTypingAndAutoCapitalization() {
         let (c, doc) = make()
         XCTAssertEqual(c.shift, .on)
@@ -132,9 +126,9 @@ final class ComposerTests: XCTestCase {
     }
 
     func testSwipeUpAfterCorrectionRevertsThenLearns() {
-        let store = InMemoryLearnedWords()
+        let store = PersonalModel()
         let doc = FakeDocument()
-        let c = Composer(document: doc, lexicons: TestLexicons.provider, learned: store, languages: [.english], settings: ComposerSettings())
+        let c = Composer(document: doc, lexicons: TestLexicons.provider, personal: store, languages: [.english], settings: ComposerSettings())
         c.handle(.shiftTap)
         type("wprld", into: c)
         c.handle(.swipe(.right))
@@ -142,18 +136,18 @@ final class ComposerTests: XCTestCase {
         c.handle(.swipe(.up))                  // restore what was typed
         XCTAssertEqual(doc.text, "wprld ")
         XCTAssertNil(c.notice)
-        XCTAssertFalse(store.contains("wprld", language: .english))
+        XCTAssertFalse(store.isLearned("wprld", language: .english))
         c.handle(.swipe(.up))                  // learn it
         XCTAssertEqual(doc.text, "wprld ")
         XCTAssertEqual(c.notice, "learned")
-        XCTAssertTrue(store.contains("wprld", language: .english))
+        XCTAssertTrue(store.isLearned("wprld", language: .english))
         c.handle(.swipe(.up))                  // forget it again
         XCTAssertEqual(doc.text, "wprld ")
         XCTAssertEqual(c.notice, "forgotten")
-        XCTAssertFalse(store.contains("wprld", language: .english))
+        XCTAssertFalse(store.isLearned("wprld", language: .english))
         c.handle(.swipe(.up))                  // and learn once more
         XCTAssertEqual(c.notice, "learned")
-        XCTAssertTrue(store.contains("wprld", language: .english))
+        XCTAssertTrue(store.isLearned("wprld", language: .english))
         c.handle(.swipe(.down))                    // back to the correction
         XCTAssertEqual(doc.text, "world ")
         XCTAssertNil(c.notice)
@@ -167,16 +161,16 @@ final class ComposerTests: XCTestCase {
         c.handle(.swipe(.right))
         XCTAssertEqual(doc.text, "wprld. Wprld ")
         let doc2 = FakeDocument()
-        let c2 = Composer(document: doc2, lexicons: TestLexicons.provider, learned: store, languages: [.english], settings: ComposerSettings())
+        let c2 = Composer(document: doc2, lexicons: TestLexicons.provider, personal: store, languages: [.english], settings: ComposerSettings())
         c2.handle(.shiftTap)
         type("wprld ", into: c2)
         XCTAssertEqual(doc2.text, "wprld ")
     }
 
     func testSwipeDownNeverReachesTypedWord() {
-        let store = InMemoryLearnedWords()
+        let store = PersonalModel()
         let doc = FakeDocument()
-        let c = Composer(document: doc, lexicons: TestLexicons.provider, learned: store, languages: [.english], settings: ComposerSettings())
+        let c = Composer(document: doc, lexicons: TestLexicons.provider, personal: store, languages: [.english], settings: ComposerSettings())
         c.handle(.shiftTap)
         type("wprld ", into: c)
         for _ in 0..<10 {
@@ -184,19 +178,19 @@ final class ComposerTests: XCTestCase {
             XCTAssertNotEqual(doc.text, "wprld ")
             XCTAssertNil(c.notice)
         }
-        XCTAssertFalse(store.contains("wprld", language: .english))
+        XCTAssertFalse(store.isLearned("wprld", language: .english))
     }
 
     func testSwipeUpOnUncorrectedWordDoesNotLearn() {
-        let store = InMemoryLearnedWords()
+        let store = PersonalModel()
         let doc = FakeDocument()
-        let c = Composer(document: doc, lexicons: TestLexicons.provider, learned: store, languages: [.english], settings: ComposerSettings())
+        let c = Composer(document: doc, lexicons: TestLexicons.provider, personal: store, languages: [.english], settings: ComposerSettings())
         c.handle(.shiftTap)
         type("hello ", into: c)
         c.handle(.swipe(.up))
         c.handle(.swipe(.up))
         XCTAssertNil(c.notice)
-        XCTAssertFalse(store.contains("hello", language: .english))
+        XCTAssertFalse(store.isLearned("hello", language: .english))
     }
 
     func testSpaceTapAfterCorrectionStillMakesPeriod() {
