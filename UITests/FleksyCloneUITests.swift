@@ -32,14 +32,26 @@ final class FleksyCloneUITests: XCTestCase {
         XCTFail("Fleksy Clone keyboard did not appear. Is it enabled in Settings?")
     }
 
+    private var keyCache: [String: XCUIElement] = [:]
+
+    /// Finding a key costs far more than tapping it: rebuilding the query and waiting on
+    /// it runs about 1.1s against 0.4s for the tap. An XCUIElement is a lazy handle that
+    /// re-resolves whenever it is used, so one per key can be kept for the whole test and
+    /// still survives the layout changing under it. The cache lives and dies with the
+    /// test case, so nothing carries over between tests.
     func key(_ id: String) -> XCUIElement {
-        keyboard.descendants(matching: .any).matching(identifier: id).firstMatch
+        if let cached = keyCache[id] { return cached }
+        let element = keyboard.descendants(matching: .any).matching(identifier: id).firstMatch
+        // `exists` is a cheap snapshot read; only pay for a wait when it is not there yet.
+        if !element.exists {
+            XCTAssertTrue(element.waitForExistence(timeout: 2), "missing key \(id)")
+        }
+        keyCache[id] = element
+        return element
     }
 
     func tapKey(_ id: String) {
-        let k = key(id)
-        XCTAssertTrue(k.waitForExistence(timeout: 2), "missing key \(id)")
-        k.tap()
+        key(id).tap()
     }
 
     func typeText(_ s: String) {

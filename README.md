@@ -105,8 +105,9 @@ Packages/FleksyCore     pure Swift engine (layouts, gestures, lexicon, corrector
 Keyboard/               the keyboard extension (custom-drawn UIKit view)
 App/                    host app: onboarding + test field
 UITests/                XCUITest that types on the real keyboard in the Simulator
-Resources/Dictionaries  cs.txt / en.txt frequency lists (CC-BY-SA 4.0, see LICENSE.txt)
-scripts/simulator.sh    build / install / test on the Simulator
+Resources/Dictionaries  cs.txt / en.txt frequency lists + generated name lists (see LICENSE.txt)
+scripts/build-names.py  regenerates the name lists from public statistics
+scripts/simulator.sh    the test runner: unit / smoke / full tiers, and Simulator plumbing
 ```
 
 ## Build
@@ -114,10 +115,31 @@ scripts/simulator.sh    build / install / test on the Simulator
 Requirements: Xcode 26, `brew install xcodegen`.
 
 ```sh
-xcodegen generate                       # regenerate FleksyClone.xcodeproj from project.yml
-(cd Packages/FleksyCore && swift test)  # engine unit tests
-scripts/simulator.sh all                # build, install in the Simulator, enable the keyboard, run UI tests
+xcodegen generate            # regenerate FleksyClone.xcodeproj from project.yml
+scripts/simulator.sh         # unit tests (the default)
 ```
+
+## Testing
+
+Driving the real keyboard in the Simulator is slow, and most changes do not need it, so
+the runner has three tiers. Each one runs the tier below it first.
+
+```sh
+scripts/simulator.sh unit    # 115 FleksyCore tests, no Simulator          ~8s   (default)
+scripts/simulator.sh smoke   # + one UI test per wiring path               ~65s
+scripts/simulator.sh full    # + the whole XCUITest suite                  ~150s
+```
+
+Run `unit` while working, `smoke` before committing, `full` before pushing or after
+touching anything in `Keyboard/`.
+
+The engine is where the behaviour lives and where it is cheap to test; the UI tests exist
+to prove the wiring — that touches reach the composer, that settings reach the keyboard,
+that the panels open. `smoke` runs one test for each of those three paths.
+
+A note if you are adding UI tests: resolving an element costs about 1.1s against 0.4s for
+the tap itself, which is why `key(_:)` caches. Prefer `exists` to `waitForExistence` for
+something that should already be on screen.
 
 ## Run on your iPhone
 
