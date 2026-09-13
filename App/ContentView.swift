@@ -47,8 +47,8 @@ struct ContentView: View {
                         VStack(alignment: .leading, spacing: 6) {
                             gesture("→", "Swipe right: space. Twice: period.")
                             gesture("←", "Swipe left: delete the last word")
-                            gesture("↑", "Swipe up: next correction for the last word")
-                            gesture("↓", "Swipe down: previous correction / what you typed")
+                            gesture("↑", "Swipe up: previous correction / what you typed")
+                            gesture("↓", "Swipe down: next correction for the last word (direction can be reversed in settings)")
                             gesture("⇄", "Swipe the space bar (or two fingers): switch Čeština / English")
                             gesture("⇊", "Two-finger swipe down: hide keyboard")
                             gesture("⌛︎", "Hold a letter: accents (ě š č ř ž ý á í é ú ů)")

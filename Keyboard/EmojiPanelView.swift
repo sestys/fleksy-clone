@@ -60,16 +60,19 @@ final class EmojiPanelView: UIView, UICollectionViewDataSource, UICollectionView
         addSubview(tabBar)
 
         let abc = makeTab(title: "ABC", identifier: "fleksy.emojiABC")
+        abc.accessibilityLabel = "Letters"
         abc.addTarget(self, action: #selector(abcTapped), for: .touchUpInside)
         tabBar.addArrangedSubview(abc)
         for (i, cat) in categories.enumerated() {
             let b = makeTab(title: cat.icon, identifier: "fleksy.emojiCategory_\(cat.id)")
+            b.accessibilityLabel = i == 0 ? "Recent emoji" : EmojiData.categories[i - 1].title
             b.tag = i
             b.addTarget(self, action: #selector(tabTapped(_:)), for: .touchUpInside)
             tabBar.addArrangedSubview(b)
             tabButtons.append(b)
         }
         let back = makeTab(title: "", identifier: "fleksy.emojiBackspace")
+        back.accessibilityLabel = "Delete"
         back.setImage(UIImage(systemName: "delete.left.fill", withConfiguration: UIImage.SymbolConfiguration(pointSize: 17, weight: .bold)), for: .normal)
         back.tintColor = UIColor(theme.specialKeyText)
         back.addTarget(self, action: #selector(backspaceTapped), for: .touchUpInside)
@@ -94,7 +97,7 @@ final class EmojiPanelView: UIView, UICollectionViewDataSource, UICollectionView
         b.titleLabel?.font = .systemFont(ofSize: title == "ABC" ? 14 : 20, weight: .semibold)
         b.setTitleColor(UIColor(theme.specialKeyText), for: .normal)
         b.accessibilityIdentifier = identifier
-        b.accessibilityLabel = identifier
+        b.accessibilityLabel = title
         return b
     }
 
@@ -102,6 +105,7 @@ final class EmojiPanelView: UIView, UICollectionViewDataSource, UICollectionView
         for b in tabButtons {
             b.backgroundColor = b.tag == selectedCategory ? UIColor(theme.pressed) : .clear
             b.layer.cornerRadius = 6
+            b.accessibilityTraits = b.tag == selectedCategory ? [.button, .selected] : .button
         }
     }
 

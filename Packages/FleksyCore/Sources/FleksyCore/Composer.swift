@@ -4,8 +4,13 @@ import Foundation
 public protocol TextDocument: AnyObject {
     var textBeforeCursor: String { get }
     var textAfterCursor: String { get }
+    var snapshot: DocumentSnapshot { get }
     func insert(_ text: String)
     func deleteBackward(_ count: Int)
+}
+
+public extension TextDocument {
+    var snapshot: DocumentSnapshot { DocumentSnapshot(before: textBeforeCursor, after: textAfterCursor) }
 }
 
 public enum ShiftState: Equatable, Sendable {
@@ -73,6 +78,9 @@ public final class Composer {
         /// The word this one followed, for the personal bigram counts. Swapping the
         /// committed word has to move the pair count off the old word and onto the new.
         var previous: String?
+        var language: Language
+        /// Only an occurrence recorded by this commit may be undone when cycling.
+        var recorded = false
         var current: String { options[index] }
     }
 
@@ -105,6 +113,7 @@ public final class Composer {
     private var touches: [TouchSample?] = []
     private var punctuation: PunctuationRun?
     private var lastEvent: InputEvent?
+    private var expectedSnapshot: DocumentSnapshot?
 
     public init(document: TextDocument, lexicons: LexiconProvider, personal: PersonalModel = PersonalModel(), languages: [Language] = [.czech, .english], language: Language? = nil, settings: ComposerSettings = ComposerSettings()) {
         self.document = document
@@ -114,6 +123,7 @@ public final class Composer {
         self.language = language ?? self.languages[0]
         self.settings = settings
         refreshAutoCapitalization()
+        expectedSnapshot = document.snapshot
     }
 
     public func setLanguages(_ langs: [Language], current: Language) {
@@ -131,6 +141,10 @@ public final class Composer {
     /// It is only meaningful for `.character` and is what drives the spatial model.
     public func handle(_ event: InputEvent, touch: TouchSample? = nil) {
         notice = nil
+        let changed = reconcileDocument()
+        defer { expectedSnapshot = document.snapshot }
+        // A tap refers to the candidates that were actually displayed, not the new word.
+        if changed, case .selectCandidate = event { return }
         switch event {
         case .character(let c):
             typeCharacter(c, touch: touch)
@@ -145,12 +159,16 @@ public final class Composer {
         case .swipe(.down):
             cycleCommit(by: settings.swipeDownForNext ? 1 : -1)
         case .backspace:
-            if !document.textBeforeCursor.isEmpty { document.deleteBackward(1) }
+            document.deleteBackward(1)
             if !touches.isEmpty { touches.removeLast() }
             refreshCandidates()
             refreshAutoCapitalization()
         case .enter:
             commitCurrentWord(trailing: "\n")
+            lastCommit = nil
+            punctuation = nil
+            touches.removeAll()
+            refreshCandidates()
             refreshAutoCapitalization()
         case .shiftTap:
             shift = shift == .off ? .on : .off
@@ -165,9 +183,6 @@ public final class Composer {
             onLanguageChange?(language)
             refreshCandidates()
         case .contextChanged:
-            // The host reports this after our own edits as well as after the user moves
-            // the caret, so only drop the taps once they no longer match the word.
-            if touches.count != currentWord.unicodeScalars.count { touches.removeAll() }
             refreshCandidates()
             refreshAutoCapitalization()
         }
@@ -175,6 +190,17 @@ public final class Composer {
     }
 
     // MARK: - Helpers
+
+    @discardableResult
+    private func reconcileDocument() -> Bool {
+        guard document.snapshot != expectedSnapshot else { return false }
+        touches.removeAll()
+        lastCommit = nil
+        punctuation = nil
+        refreshCandidates()
+        refreshAutoCapitalization()
+        return true
+    }
 
     static func isWordScalar(_ s: Unicode.Scalar) -> Bool {
         CharacterSet.letters.contains(s) || s == "'" || s == "’"
@@ -253,6 +279,7 @@ public final class Composer {
             lastCommit = nil
             punctuation = nil
             if shift == .on { shift = .off }
+            if document.snapshot.capitalization == .allCharacters { refreshAutoCapitalization() }
             refreshCandidates()
         } else {
             let punctuationThatCommits: Set<String> = [".", ",", "!", "?", ";", ":"]
@@ -274,6 +301,15 @@ public final class Composer {
     }
 
     private func insertSpace(fromSwipe: Bool) {
+        guard document.snapshot.canReplaceWord else {
+            document.insert(" ")
+            lastCommit = nil
+            punctuation = nil
+            touches.removeAll()
+            refreshCandidates()
+            refreshAutoCapitalization()
+            return
+        }
         let before = document.textBeforeCursor
         // Another space right after an auto-inserted mark repeats it: "word. " -> "word.. ".
         if var run = punctuation, isPunctuationValid(run) {
@@ -304,7 +340,7 @@ public final class Composer {
     }
 
     private func isPunctuationValid(_ run: PunctuationRun) -> Bool {
-        document.textBeforeCursor.hasSuffix(run.text)
+        document.snapshot.canReplaceWord && document.textBeforeCursor.hasSuffix(run.text)
     }
 
     /// Replaces the current punctuation run with a single mark from the cycle.
@@ -320,7 +356,7 @@ public final class Composer {
     /// Runs autocorrect on the word before the cursor and appends `trailing`.
     private func commitCurrentWord(trailing: String) {
         let word = currentWord
-        guard !word.isEmpty else {
+        guard !word.isEmpty, document.snapshot.canReplaceWord else {
             document.insert(trailing)
             lastCommit = nil
             touches.removeAll()
@@ -337,7 +373,7 @@ public final class Composer {
         if let corrector = corrector(for: language), word.count >= 2 {
             let cands = corrector.candidates(for: word, context: CorrectionContext(personal: prior, touches: taps))
             let alternatives = cands.map { Composer.applyCase(of: word, to: $0.word) }.filter { $0.lowercased() != word.lowercased() }
-            if settings.autocorrect, !prior.isLearned(word),
+            if settings.autocorrect, document.snapshot.autocorrectionAllowed, !prior.isLearned(word),
                let best = Composer.correction(for: word, candidates: cands, corrector: corrector, personal: prior) {
                 let replacement = Composer.applyCase(of: word, to: best.word)
                 document.deleteBackward(word.count)
@@ -350,7 +386,7 @@ public final class Composer {
         }
         document.insert(trailing)
         let commit = Commit(options: options, index: corrected ? 1 : 0, trailing: trailing, typed: word,
-                            corrected: corrected, previous: previous)
+                            corrected: corrected, previous: previous, language: language, recorded: true)
         lastCommit = commit
         personal.note(commit.current, after: previous, language: language)
         refreshCandidates()
@@ -383,10 +419,12 @@ public final class Composer {
     }
 
     private func isCommitValid(_ commit: Commit) -> Bool {
-        document.textBeforeCursor.hasSuffix(commit.current + commit.trailing)
+        document.snapshot.canReplaceWord && !commit.trailing.contains("\n")
+            && document.textBeforeCursor.hasSuffix(commit.current + commit.trailing)
     }
 
     private func cycleCommit(by delta: Int) {
+        guard document.snapshot.canReplaceWord else { return }
         if let run = punctuation, isPunctuationValid(run) {
             let n = Composer.punctuationCycle.count
             replacePunctuation(run, with: ((run.index + delta) % n + n) % n)
@@ -396,11 +434,11 @@ public final class Composer {
             // Swipe down walks left towards the typed word and never wraps. Once there, further
             // swipes down on a corrected word alternate between learning and forgetting it.
             if delta < 0, commit.corrected, commit.index == 0 {
-                if personal.isLearned(commit.typed, language: language) {
-                    personal.forget(commit.typed, language: language)
+                if personal.isLearned(commit.typed, language: commit.language) {
+                    personal.forget(commit.typed, language: commit.language)
                     notice = "forgotten"
                 } else {
-                    personal.learn(commit.typed, language: language)
+                    personal.learn(commit.typed, language: commit.language)
                     notice = "learned"
                 }
                 refreshCandidates()
@@ -463,23 +501,28 @@ public final class Composer {
         }
         guard options.count > 1 else { return nil }
         return Commit(options: options, index: 0, trailing: String(String.UnicodeScalarView(trailing.reversed())),
-                      typed: typed, corrected: false, previous: previous)
+                      typed: typed, corrected: false, previous: previous, language: language)
     }
 
     private func replaceCommit(_ commit: Commit, with newIndex: Int) {
+        guard newIndex != commit.index else { return }
         document.deleteBackward(commit.current.count + commit.trailing.count)
         var updated = commit
         updated.index = newIndex
         document.insert(updated.current + updated.trailing)
         // The word the user settled on is the one worth counting, not the one we guessed.
-        personal.unnote(commit.current, after: commit.previous, language: language)
-        personal.note(updated.current, after: commit.previous, language: language)
+        if commit.recorded {
+            personal.unnote(commit.current, after: commit.previous, language: commit.language)
+        }
+        personal.note(updated.current, after: commit.previous, language: commit.language)
+        updated.recorded = true
         lastCommit = updated
         refreshCandidates()
         refreshAutoCapitalization()
     }
 
     private func selectCandidate(_ i: Int) {
+        guard document.snapshot.canReplaceWord else { return }
         if let run = punctuation, isPunctuationValid(run) {
             guard Composer.punctuationCycle.indices.contains(i) else { return }
             replacePunctuation(run, with: i)
@@ -500,23 +543,33 @@ public final class Composer {
         var options = candidates.map { $0.text }
         options.remove(at: i)
         options.insert(chosen, at: 0)
-        lastCommit = Commit(options: options, index: 0, trailing: " ", typed: word, corrected: false, previous: previous)
+        lastCommit = Commit(options: options, index: 0, trailing: " ", typed: word, corrected: false,
+                            previous: previous, language: language, recorded: true)
         personal.note(chosen, after: previous, language: language)
         refreshCandidates()
         refreshAutoCapitalization()
     }
 
     private func deletePreviousWord() {
+        if document.snapshot.hasSelection {
+            document.deleteBackward(1)
+            lastCommit = nil
+            punctuation = nil
+            touches.removeAll()
+            refreshCandidates()
+            refreshAutoCapitalization()
+            return
+        }
         let before = document.textBeforeCursor
         guard !before.isEmpty else { return }
         let scalars = Array(before.unicodeScalars)
         var i = scalars.count
-        var count = 0
-        while i > 0, CharacterSet.whitespacesAndNewlines.contains(scalars[i - 1]) { i -= 1; count += 1 }
+        while i > 0, CharacterSet.whitespacesAndNewlines.contains(scalars[i - 1]) { i -= 1 }
         var wordCount = 0
         while i > 0, Composer.isWordScalar(scalars[i - 1]) { i -= 1; wordCount += 1 }
-        if wordCount == 0, i > 0 { wordCount = 1 } // a lone punctuation mark
-        document.deleteBackward(count + wordCount)
+        if wordCount == 0, i > 0 { i -= 1 } // a lone punctuation mark
+        let removed = String(String.UnicodeScalarView(scalars[i...]))
+        document.deleteBackward(removed.count)
         lastCommit = nil
         punctuation = nil
         touches.removeAll()
@@ -527,6 +580,7 @@ public final class Composer {
     // MARK: - Derived state
 
     private func refreshCandidates() {
+        guard document.snapshot.canReplaceWord else { candidates = []; return }
         if let run = punctuation, isPunctuationValid(run) {
             candidates = Composer.punctuationCycle.enumerated().map { CandidateItem(text: $1, isSelected: $0 == run.index) }
             return
@@ -555,7 +609,16 @@ public final class Composer {
 
     /// True at the start of the text or after sentence-ending punctuation followed by whitespace.
     public var shouldAutoCapitalize: Bool {
+        let snapshot = document.snapshot
+        guard !snapshot.hasSelection else { return false }
         let before = document.textBeforeCursor
+        switch snapshot.capitalization {
+        case .none: return false
+        case .allCharacters: return true
+        case .words:
+            return before.unicodeScalars.last.map { CharacterSet.whitespacesAndNewlines.contains($0) } ?? true
+        case .sentences: break
+        }
         if before.isEmpty { return true }
         let scalars = Array(before.unicodeScalars)
         var i = scalars.count

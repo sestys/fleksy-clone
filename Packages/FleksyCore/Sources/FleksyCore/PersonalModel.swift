@@ -186,7 +186,9 @@ public final class PersonalModel: @unchecked Sendable {
         guard let c = counts[language] else { return nil }
         var words: [(String, Double)] = []
         for (word, count) in c.unigrams where count >= settings.minimumUses {
-            words.append((word, Double(count) * settings.scale))
+            // Cache membership with a stable floor, not a stale snapshot of usage.
+            // Corrector reads the current counts from PersonalPrior when scoring.
+            words.append((word, Double(settings.minimumUses) * settings.scale))
         }
         for word in c.learned where c.unigrams[word] ?? 0 < settings.minimumUses {
             words.append((word, settings.minimumUses > 0 ? Double(settings.minimumUses) * settings.scale : settings.scale))

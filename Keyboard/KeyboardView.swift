@@ -9,6 +9,12 @@ protocol KeyboardViewDelegate: AnyObject {
     func keyboardView(_ view: KeyboardView, didSwipe direction: SwipeDirection, fingers: Int, startedOn key: Key?)
     func keyboardView(_ view: KeyboardView, didPickAccent accent: String)
     func keyboardView(_ view: KeyboardView, globeTouched event: UIEvent?)
+    func keyboardViewDidActivateGlobe(_ view: KeyboardView)
+}
+
+private final class KeyAccessibilityElement: UIAccessibilityElement {
+    var activate: (() -> Bool)?
+    override func accessibilityActivate() -> Bool { activate?() ?? false }
 }
 
 /// The whole key area, drawn by hand (Fleksy style: colour bands, no key borders) and
@@ -21,10 +27,10 @@ protocol KeyboardViewDelegate: AnyObject {
 /// travelled far enough in the same direction, which is what tells it apart from two
 /// keys being hit at the same moment.
 final class KeyboardView: UIView, UIInputViewAudioFeedback {
-    var layout: KeyboardLayout { didSet { setNeedsLayout(); setNeedsDisplay() } }
-    var theme: Theme { didSet { setNeedsDisplay() } }
-    var shift: ShiftState = .off { didSet { setNeedsDisplay() } }
-    var returnLabel = "↵" { didSet { setNeedsDisplay() } }
+    var layout: KeyboardLayout { didSet { if layout != oldValue { cancelTouches(); setNeedsLayout(); setNeedsDisplay() } } }
+    var theme: Theme { didSet { if theme != oldValue { setNeedsDisplay() } } }
+    var shift: ShiftState = .off { didSet { if shift != oldValue { setNeedsDisplay(); rebuildAccessibility() } } }
+    var returnLabel = "↵" { didSet { if returnLabel != oldValue { setNeedsDisplay(); rebuildAccessibility() } } }
     var clicksEnabled = true
     /// Requires Full Access; the controller turns it off when we do not have it.
     var hapticsEnabled = false {
@@ -61,16 +67,17 @@ final class KeyboardView: UIView, UIInputViewAudioFeedback {
         var current: CGPoint
         var timer: Timer?
         /// Backspace auto-repeat fired, so the lift must not type one more.
-        var repeated = false
+        var lifecycle: TouchLifecycle
         /// Swallowed by a two-finger gesture.
-        var consumed = false
+        var consumed: Bool { lifecycle.state == .consumed || lifecycle.state == .cancelled }
         var popup: AccentPopupView?
 
-        init(start: CGPoint, time: TimeInterval, key: Key?) {
+        init(start: CGPoint, time: TimeInterval, key: Key?, sequence: Int) {
             self.start = start
             self.time = time
             self.key = key
             self.current = start
+            self.lifecycle = TouchLifecycle(startedAt: time, sequence: sequence)
         }
 
         var displacement: CGPoint { CGPoint(x: current.x - start.x, y: current.y - start.y) }
@@ -78,6 +85,7 @@ final class KeyboardView: UIView, UIInputViewAudioFeedback {
     }
 
     private var activeTouches: [UITouch: TouchInfo] = [:]
+    private var nextTouchSequence = 0
     /// Set once a two-finger swipe has been recognised and reported, so the fingers
     /// still on the glass do not also type.
     private var twoFingerGestureFired = false
@@ -99,6 +107,21 @@ final class KeyboardView: UIView, UIInputViewAudioFeedback {
     }
 
     required init?(coder: NSCoder) { fatalError() }
+
+    override func didMoveToWindow() {
+        super.didMoveToWindow()
+        if window == nil { cancelTouches() }
+    }
+
+    private func cancelTouches() {
+        for info in activeTouches.values {
+            info.timer?.invalidate()
+            info.lifecycle.consume()
+            hidePopup(info)
+        }
+        activeTouches.removeAll()
+        twoFingerGestureFired = false
+    }
 
     // MARK: Layout
 
@@ -143,11 +166,47 @@ final class KeyboardView: UIView, UIInputViewAudioFeedback {
 
     private func rebuildAccessibility() {
         accessibilityElements = keyFrames.map { kf in
-            let el = UIAccessibilityElement(accessibilityContainer: self)
+            let el = KeyAccessibilityElement(accessibilityContainer: self)
             el.accessibilityFrameInContainerSpace = kf.frame
-            el.accessibilityLabel = kf.key.label.isEmpty ? String(describing: kf.key.action) : kf.key.label
+            switch kf.key.action {
+            case .character(let c): el.accessibilityLabel = shift == .off ? c : c.uppercased()
+            case .shift:
+                el.accessibilityLabel = "Shift"
+                el.accessibilityValue = shift == .locked ? "Caps lock" : (shift == .on ? "On" : "Off")
+            case .backspace: el.accessibilityLabel = "Delete"
+            case .space:
+                el.accessibilityLabel = "Space"
+                el.accessibilityValue = kf.key.label
+            case .enter: el.accessibilityLabel = returnLabel == "↵" ? "Return" : returnLabel
+            case .globe: el.accessibilityLabel = "Next keyboard"
+            case .emoji: el.accessibilityLabel = "Emoji"
+            case .numbers: el.accessibilityLabel = "Numbers"
+            case .symbols: el.accessibilityLabel = "Symbols"
+            case .letters: el.accessibilityLabel = "Letters"
+            }
             el.accessibilityIdentifier = KeyboardView.identifier(for: kf.key)
             el.accessibilityTraits = .keyboardKey
+            el.activate = { [weak self] in
+                guard let self, self.delegate != nil else { return false }
+                self.feedback()
+                if kf.key.action == .globe { self.delegate?.keyboardViewDidActivateGlobe(self) }
+                else { self.delegate?.keyboardView(self, didTap: kf.key, at: nil) }
+                return true
+            }
+            el.accessibilityCustomActions = kf.key.accents.map { accent in
+                UIAccessibilityCustomAction(name: accent) { [weak self] _ in
+                    guard let self, self.delegate != nil else { return false }
+                    self.delegate?.keyboardView(self, didPickAccent: accent)
+                    return true
+                }
+            }
+            if kf.key.action == .shift {
+                el.accessibilityCustomActions = [UIAccessibilityCustomAction(name: "Caps lock") { [weak self] _ in
+                    guard let self, self.delegate != nil else { return false }
+                    self.delegate?.keyboardViewDidDoubleTapShift(self)
+                    return true
+                }]
+            }
             return el
         }
     }
@@ -303,10 +362,18 @@ final class KeyboardView: UIView, UIInputViewAudioFeedback {
     // MARK: Touches
 
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
-        for touch in touches {
+        // UIKit supplies a Set. Break simultaneous timestamp ties by position so
+        // the sequence assigned here never depends on hash iteration order.
+        let ordered = touches.sorted {
+            if $0.timestamp != $1.timestamp { return $0.timestamp < $1.timestamp }
+            let a = $0.location(in: self), b = $1.location(in: self)
+            return a.y == b.y ? a.x < b.x : a.y < b.y
+        }
+        for touch in ordered {
             let p = touch.location(in: self)
             let key = key(at: p)
-            let info = TouchInfo(start: p, time: touch.timestamp, key: key)
+            let info = TouchInfo(start: p, time: touch.timestamp, key: key, sequence: nextTouchSequence)
+            nextTouchSequence += 1
             activeTouches[touch] = info
             guard let key else { continue }
             feedback()
@@ -328,6 +395,8 @@ final class KeyboardView: UIView, UIInputViewAudioFeedback {
         for touch in touches {
             guard let info = activeTouches[touch] else { continue }
             info.current = touch.location(in: self)
+            info.lifecycle.move(dx: info.displacement.x, dy: info.displacement.y)
+            if !info.lifecycle.allowsHold { info.timer?.invalidate() }
             if let popup = info.popup {
                 popup.highlight(atX: convert(info.current, to: popup).x)
             }
@@ -340,7 +409,9 @@ final class KeyboardView: UIView, UIInputViewAudioFeedback {
 
     override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
         var lifted: [Key?] = []
-        for touch in touches {
+        let ordered = touches.compactMap { touch in activeTouches[touch].map { (touch, $0) } }
+            .sorted { $0.1.lifecycle.precedes($1.1.lifecycle) }
+        for (touch, _) in ordered {
             guard let info = activeTouches.removeValue(forKey: touch) else { continue }
             info.timer?.invalidate()
             lifted.append(info.key)
@@ -374,11 +445,10 @@ final class KeyboardView: UIView, UIInputViewAudioFeedback {
 
     private func startBackspaceRepeat(_ info: TouchInfo, key: Key) {
         info.timer = Timer.scheduledTimer(withTimeInterval: 0.4, repeats: false) { [weak self, weak info] _ in
-            guard let self, let info else { return }
-            info.repeated = true
+            guard let self, let info, info.lifecycle.repeatTick() else { return }
             self.delegate?.keyboardView(self, didTap: key, at: nil)
-            info.timer = Timer.scheduledTimer(withTimeInterval: 0.075, repeats: true) { [weak self] _ in
-                guard let self else { return }
+            info.timer = Timer.scheduledTimer(withTimeInterval: 0.075, repeats: true) { [weak self, weak info] timer in
+                guard let self, let info, info.lifecycle.repeatTick() else { timer.invalidate(); return }
                 self.delegate?.keyboardView(self, didTap: key, at: nil)
             }
         }
@@ -386,9 +456,9 @@ final class KeyboardView: UIView, UIInputViewAudioFeedback {
 
     private func startAccentHold(_ info: TouchInfo, key: Key) {
         info.timer = Timer.scheduledTimer(withTimeInterval: 0.42, repeats: false) { [weak self, weak info] _ in
-            guard let self, let info, !info.consumed else { return }
+            guard let self, let info, info.lifecycle.openAccent() else { return }
             // Only open the popup if the finger has not started a swipe.
-            if info.distance < 12 { self.showAccentPopup(for: key, owner: info) }
+            self.showAccentPopup(for: key, owner: info)
         }
     }
 
@@ -401,7 +471,7 @@ final class KeyboardView: UIView, UIInputViewAudioFeedback {
         guard let direction = classifier.multiFingerSwipe(displacements) else { return }
         twoFingerGestureFired = true
         for info in activeTouches.values {
-            info.consumed = true
+            info.lifecycle.consume()
             info.timer?.invalidate()
             hidePopup(info)
         }
@@ -422,10 +492,9 @@ final class KeyboardView: UIView, UIInputViewAudioFeedback {
             delegate?.keyboardView(self, didPickAccent: picked)
             return
         }
-        if info.repeated { return }
-
         let d = info.displacement
-        switch classifier.classify(dx: d.x, dy: d.y, duration: timestamp - info.time) {
+        guard let gesture = info.lifecycle.finish(dx: d.x, dy: d.y, at: timestamp, classifier: classifier) else { return }
+        switch gesture {
         case .tap:
             if key.action == .shift {
                 if timestamp - lastShiftTap < 0.35 {

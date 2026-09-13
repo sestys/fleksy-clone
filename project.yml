@@ -75,6 +75,20 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.matejsestak.fleksyclone.uitests
         TEST_TARGET_NAME: FleksyClone
+  FleksyKeyboardTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: KeyboardTests
+      - path: Keyboard/KeyboardView.swift
+      - path: Keyboard/CandidateBarView.swift
+      - path: Keyboard/AccentPopupView.swift
+      - path: Keyboard/UIColor+RGBA.swift
+    dependencies:
+      - package: FleksyCore
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
 schemes:
   FleksyClone:
     build:
@@ -82,9 +96,11 @@ schemes:
         FleksyClone: all
         FleksyKeyboard: all
         FleksyCloneUITests: [test]
+        FleksyKeyboardTests: [test]
     run:
       config: Release
     test:
       config: Debug
       targets:
         - FleksyCloneUITests
+        - FleksyKeyboardTests

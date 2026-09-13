@@ -78,6 +78,25 @@ final class FleksyCloneUITests: XCTestCase {
 
     // MARK: Tests
 
+    func testSwipeStartingOnBackspaceCancelsRepeat() {
+        ensureLanguage("English")
+        typeText("hello world")
+        let start = key("key_backspace").coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
+        start.press(forDuration: 0.05, thenDragTo: start.withOffset(CGVector(dx: -100, dy: 0)),
+                    withVelocity: .fast, thenHoldForDuration: 0.45)
+        XCTAssertEqual(fieldText, "Hello ")
+    }
+
+    func testCorrectionAfterReturnDoesNotReplayReturn() {
+        ensureLanguage("English")
+        typeText("hello")
+        tapKey("key_enter")
+        let entered = fieldText
+        swipe(dx: 0, dy: -90)
+        swipe(dx: 0, dy: 90)
+        XCTAssertEqual(fieldText, entered)
+    }
+
     func testTypingAndAutocorrectAndSwipes() {
         // English is needed for these words; the keyboard may start in Czech.
         ensureLanguage("English")
@@ -118,7 +137,7 @@ final class FleksyCloneUITests: XCTestCase {
     func testLanguageSwitchViaSpaceBarSwipe() {
         ensureLanguage("English")
         swipe(dx: 100, dy: 0, startOn: "key_space")
-        XCTAssertTrue(key("key_space").label == "Čeština" || keyboard.staticTexts["Čeština"].exists || app.staticTexts["Čeština"].exists)
+        XCTAssertEqual(key("key_space").value as? String, "Čeština")
         XCTAssertTrue(key("key_z").exists) // qwertz: z in the top row next to t
         takeScreenshot("switched")
     }
@@ -150,13 +169,13 @@ final class FleksyCloneUITests: XCTestCase {
         XCTAssertEqual(fieldText, "Helo ")
         swipe(dx: 0, dy: -90)                  // swipe up again: learn it
         XCTAssertEqual(fieldText, "Helo ")
-        XCTAssertTrue(app.buttons["fleksy.notice"].waitForExistence(timeout: 2))
-        XCTAssertEqual(app.buttons["fleksy.notice"].label, "✓ learned")
+        XCTAssertTrue(app.staticTexts["fleksy.notice"].waitForExistence(timeout: 2))
+        XCTAssertEqual(app.staticTexts["fleksy.notice"].label, "✓ learned")
         takeScreenshot("learned")
         swipe(dx: 0, dy: -90)                  // and again: forget it
-        XCTAssertEqual(app.buttons["fleksy.notice"].label, "✓ forgotten")
+        XCTAssertEqual(app.staticTexts["fleksy.notice"].label, "✓ forgotten")
         swipe(dx: 0, dy: -90)                  // and again: learn it
-        XCTAssertEqual(app.buttons["fleksy.notice"].label, "✓ learned")
+        XCTAssertEqual(app.staticTexts["fleksy.notice"].label, "✓ learned")
         typeText("helo")
         swipe(dx: 120, dy: 0)                  // no longer corrected
         XCTAssertEqual(fieldText, "Helo helo ")
@@ -234,10 +253,10 @@ final class FleksyCloneUITests: XCTestCase {
 
     func ensureLanguage(_ name: String) {
         for _ in 0..<2 {
-            if key("key_space").label == name { return }
+            if key("key_space").value as? String == name { return }
             swipe(dx: 100, dy: 0, startOn: "key_space")
         }
-        XCTAssertEqual(key("key_space").label, name)
+        XCTAssertEqual(key("key_space").value as? String, name)
     }
 
     func takeScreenshot(_ name: String) {

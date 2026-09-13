@@ -106,6 +106,12 @@ final class KeyboardViewController: UIInputViewController {
         syncUI()
     }
 
+    override func selectionDidChange(_ textInput: UITextInput?) {
+        super.selectionDidChange(textInput)
+        composer.handle(.contextChanged)
+        syncUI()
+    }
+
     // MARK: Layout helpers
 
     private func totalHeight(width: CGFloat? = nil) -> CGFloat {
@@ -166,9 +172,7 @@ final class KeyboardViewController: UIInputViewController {
     private func syncUI() {
         keyboardView.shift = composer.shift
         keyboardView.returnLabel = returnLabel()
-        candidateBar.languageHint = composer.language.displayName
-        candidateBar.notice = composer.notice
-        candidateBar.items = composer.candidates
+        candidateBar.update(items: composer.candidates, languageHint: composer.language.displayName, notice: composer.notice)
     }
 
     private func applyTheme() {
@@ -289,6 +293,8 @@ extension KeyboardViewController: KeyboardViewDelegate {
     func keyboardView(_ view: KeyboardView, globeTouched event: UIEvent?) {
         handleInputModeList(from: view, with: event ?? UIEvent())
     }
+
+    func keyboardViewDidActivateGlobe(_ view: KeyboardView) { advanceToNextInputMode() }
 }
 
 // MARK: - EmojiPanelDelegate

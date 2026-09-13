@@ -4,11 +4,27 @@ import Foundation
 final class FakeDocument: TextDocument {
     var before: String
     var after: String
+    var insertions: [String] = []
+    var deletions: [Int] = []
+    var selection: String?
+    var identifier = UUID()
+    var contextAvailable = true
+    var afterAvailable = true
+    var autocorrectionAllowed = true
+    var capitalization: DocumentSnapshot.Capitalization = .sentences
     init(_ before: String = "", after: String = "") { self.before = before; self.after = after }
     var textBeforeCursor: String { before }
     var textAfterCursor: String { after }
-    func insert(_ text: String) { before += text }
+    var snapshot: DocumentSnapshot {
+        var snapshot = DocumentSnapshot(before: contextAvailable ? before : nil, after: contextAvailable && afterAvailable ? after : nil,
+                                        selection: selection, identifier: identifier)
+        snapshot.autocorrectionAllowed = autocorrectionAllowed
+        snapshot.capitalization = capitalization
+        return snapshot
+    }
+    func insert(_ text: String) { before += text; insertions.append(text) }
     func deleteBackward(_ count: Int) {
+        deletions.append(count)
         for _ in 0..<count where !before.isEmpty { before.removeLast() }
     }
     var text: String { before + after }

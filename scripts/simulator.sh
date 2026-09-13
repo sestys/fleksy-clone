@@ -61,9 +61,25 @@ boot() {
 
 build() {
   local id=$1
-  xcodebuild -project FleksyClone.xcodeproj -scheme FleksyClone \
+  run_xcodebuild -project FleksyClone.xcodeproj -scheme FleksyClone \
     -destination "platform=iOS Simulator,id=$id" -derivedDataPath "$DERIVED" \
-    CODE_SIGNING_ALLOWED=NO build-for-testing 2>&1 | grep -E "error:|BUILD (SUCCEEDED|FAILED)" || true
+    CODE_SIGNING_ALLOWED=NO build-for-testing
+}
+
+# Capture the command status independently of the presentation filter. Even a
+# failure that prints none of these lines must fail the runner.
+run_xcodebuild() {
+  local log status=0
+  log=$(mktemp) || return $?
+  xcodebuild "$@" > "$log" 2>&1 || status=$?
+  grep -E "error:|Test Case|Executing|passed|failed|BUILD|TEST" "$log" || true
+  if [ "$status" -ne 0 ]; then
+    echo "xcodebuild failed (exit $status); full log: $log" >&2
+    tail -30 "$log" >&2
+  else
+    rm -f "$log"
+  fi
+  return "$status"
 }
 
 enable_keyboard() {
@@ -107,32 +123,41 @@ run_tests() {
   local id=$1; shift
   local only=()
   local t
+  if [ "$#" -gt 0 ]; then only+=(-only-testing:FleksyKeyboardTests); fi
   for t in "$@"; do only+=(-only-testing:FleksyCloneUITests/FleksyCloneUITests/"$t"); done
   echo "== UI tests (${#only[@]:-0} selected, 0 means all) =="
-  xcodebuild -project FleksyClone.xcodeproj -scheme FleksyClone \
+  run_xcodebuild -project FleksyClone.xcodeproj -scheme FleksyClone \
     -destination "platform=iOS Simulator,id=$id" -derivedDataPath "$DERIVED" \
     -resultBundlePath "build/TestResults-$(date +%s).xcresult" \
     ${only[@]+"${only[@]}"} \
-    CODE_SIGNING_ALLOWED=NO test-without-building 2>&1 | grep -E "error:|Test Case|Executing|passed|failed|BUILD|TEST" | grep -v "^$" || true
+    CODE_SIGNING_ALLOWED=NO test-without-building
 }
 
 # Prepares the simulator and returns its id. Only the tiers that need one call this,
 # so `unit` never boots anything.
 with_simulator() {
   local id
-  id=$(ensure_device)
-  build "$id" >&2
-  boot "$id" >&2
-  install "$id" >&2
+  id=$(ensure_device) || return $?
+  build "$id" >&2 || return $?
+  boot "$id" >&2 || return $?
+  install "$id" >&2 || return $?
   echo "$id"
 }
 
 cmd=${1:-unit}
 case "$cmd" in
   unit)  unit_tests ;;
-  smoke) unit_tests && run_tests "$(with_simulator)" "${SMOKE_TESTS[@]}" ;;
-  full|test|all) unit_tests && run_tests "$(with_simulator)" ;;
-  build) build "$(ensure_device)" ;;
+  smoke)
+    unit_tests || exit $?
+    ID=$(with_simulator) || exit $?
+    run_tests "$ID" "${SMOKE_TESTS[@]}"
+    ;;
+  full|test|all)
+    unit_tests || exit $?
+    ID=$(with_simulator) || exit $?
+    run_tests "$ID"
+    ;;
+  build) ID=$(ensure_device); build "$ID" ;;
   install) ID=$(ensure_device); boot "$ID"; install "$ID" ;;
   shot) ID=$(ensure_device); boot "$ID"; xcrun simctl io "$ID" screenshot "${2:-screenshot.png}" ;;
   udid) ensure_device ;;

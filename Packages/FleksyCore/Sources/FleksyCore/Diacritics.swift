@@ -22,10 +22,10 @@ public enum Diacritics {
     }
 
     public static func fold(_ string: String) -> String {
-        String(String.UnicodeScalarView(string.unicodeScalars.map { Unicode.Scalar(fold($0.value)) ?? $0 }))
+        String(String.UnicodeScalarView(string.precomposedStringWithCanonicalMapping.unicodeScalars.map { Unicode.Scalar(fold($0.value)) ?? $0 }))
     }
 
     public static func scalars(_ string: String) -> [UInt32] {
-        string.unicodeScalars.map { $0.value }
+        string.precomposedStringWithCanonicalMapping.unicodeScalars.map { $0.value }
     }
 }

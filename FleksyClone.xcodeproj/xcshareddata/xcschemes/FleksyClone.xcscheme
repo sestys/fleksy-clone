@@ -49,6 +49,20 @@
                ReferencedContainer = "container:FleksyClone.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "NO"
+            buildForProfiling = "NO"
+            buildForArchiving = "NO"
+            buildForAnalyzing = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "81E53BFDADB44511A8CE0BDB"
+               BuildableName = "FleksyKeyboardTests.xctest"
+               BlueprintName = "FleksyKeyboardTests"
+               ReferencedContainer = "container:FleksyClone.xcodeproj">
+            </BuildableReference>
+         </BuildActionEntry>
       </BuildActionEntries>
    </BuildAction>
    <TestAction
@@ -75,6 +89,17 @@
                BlueprintIdentifier = "10903C2607CE0A89622815BF"
                BuildableName = "FleksyCloneUITests.xctest"
                BlueprintName = "FleksyCloneUITests"
+               ReferencedContainer = "container:FleksyClone.xcodeproj">
+            </BuildableReference>
+         </TestableReference>
+         <TestableReference
+            skipped = "NO"
+            parallelizable = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "81E53BFDADB44511A8CE0BDB"
+               BuildableName = "FleksyKeyboardTests.xctest"
+               BlueprintName = "FleksyKeyboardTests"
                ReferencedContainer = "container:FleksyClone.xcodeproj">
             </BuildableReference>
          </TestableReference>

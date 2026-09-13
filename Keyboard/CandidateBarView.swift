@@ -6,14 +6,27 @@ protocol CandidateBarDelegate: AnyObject {
     func candidateBarDidTapSettings(_ bar: CandidateBarView)
 }
 
+private final class CandidateLabel: UILabel {
+    var activate: (() -> Bool)?
+    override func accessibilityActivate() -> Bool { activate?() ?? false }
+}
+
 /// Suggestion strip above the keys. Shows up to three candidates around the selected one.
 final class CandidateBarView: UIView {
     weak var delegate: CandidateBarDelegate?
-    var theme: Theme { didSet { applyTheme() } }
-    var items: [CandidateItem] = [] { didSet { rebuild() } }
-    var languageHint: String = "" { didSet { rebuild() } }
+    var theme: Theme { didSet { if theme != oldValue { applyTheme() } } }
+    private var items: [CandidateItem] = []
+    private var languageHint: String = ""
     /// Transient status shown centred instead of candidates (e.g. "learned").
-    var notice: String? { didSet { rebuild() } }
+    private var notice: String?
+
+    func update(items: [CandidateItem], languageHint: String, notice: String?) {
+        guard self.items != items || self.languageHint != languageHint || self.notice != notice else { return }
+        self.items = items
+        self.languageHint = languageHint
+        self.notice = notice
+        rebuild()
+    }
 
     private let settingsButton = UIButton(type: .custom)
     private let stack = UIStackView()
@@ -47,7 +60,7 @@ final class CandidateBarView: UIView {
             stack.bottomAnchor.constraint(equalTo: bottomAnchor),
         ])
         for i in 0..<3 {
-            let l = UILabel()
+            let l = CandidateLabel()
             l.textAlignment = .center
             l.font = .systemFont(ofSize: 17)
             l.isUserInteractionEnabled = true
@@ -55,6 +68,7 @@ final class CandidateBarView: UIView {
             l.adjustsFontSizeToFitWidth = true
             l.minimumScaleFactor = 0.7
             l.accessibilityIdentifier = "fleksy.candidate\(i)"
+            l.activate = { [weak self] in self?.select(slot: i) ?? false }
             l.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(candidateTapped(_:))))
             stack.addArrangedSubview(l)
             labels.append(l)
@@ -74,12 +88,15 @@ final class CandidateBarView: UIView {
 
     private func rebuild() {
         if let notice {
+            visibleIndices = []
             for (slot, label) in labels.enumerated() {
                 label.isHidden = false
                 label.text = slot == 1 ? "✓ \(notice)" : ""
                 label.textColor = UIColor(theme.candidateSelected)
                 label.font = .systemFont(ofSize: 15, weight: .semibold)
                 label.accessibilityIdentifier = slot == 1 ? "fleksy.notice" : "fleksy.candidate\(slot)"
+                label.isUserInteractionEnabled = false
+                label.accessibilityTraits = .staticText
             }
             return
         }
@@ -91,6 +108,8 @@ final class CandidateBarView: UIView {
         }
         visibleIndices = Array(start..<min(items.count, start + 3))
         for (slot, label) in labels.enumerated() {
+            label.isUserInteractionEnabled = slot < visibleIndices.count
+            label.accessibilityTraits = slot < visibleIndices.count ? .button : .staticText
             if slot < visibleIndices.count {
                 let item = items[visibleIndices[slot]]
                 label.text = item.text
@@ -110,8 +129,14 @@ final class CandidateBarView: UIView {
     }
 
     @objc private func candidateTapped(_ g: UITapGestureRecognizer) {
-        guard let slot = g.view?.tag, slot < visibleIndices.count else { return }
+        guard let slot = g.view?.tag else { return }
+        _ = select(slot: slot)
+    }
+
+    private func select(slot: Int) -> Bool {
+        guard notice == nil, visibleIndices.indices.contains(slot), delegate != nil else { return false }
         delegate?.candidateBar(self, didSelect: visibleIndices[slot])
+        return true
     }
 
     @objc private func settingsTapped() {

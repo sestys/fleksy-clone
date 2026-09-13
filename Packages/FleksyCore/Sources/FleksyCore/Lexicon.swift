@@ -134,7 +134,7 @@ public final class Lexicon: @unchecked Sendable {
     public convenience init(language: Language, words: [(String, Double)]) {
         var builder = Builder()
         builder.reserve(words: words.count, scalars: words.count * 8)
-        for (raw, frequency) in words { builder.add(raw.lowercased(), frequency: frequency) }
+        for (raw, frequency) in words { builder.add(raw.lowercased().precomposedStringWithCanonicalMapping, frequency: frequency) }
         self.init(language: language, builder: builder)
     }
 
@@ -162,7 +162,7 @@ public final class Lexicon: @unchecked Sendable {
                 let parts = line.split(separator: " ", maxSplits: 1)
                 guard let word = parts.first else { return }
                 let frequency = parts.count > 1 ? Double(parts[1]) ?? 1 : 1
-                builder.add(word.lowercased(), frequency: frequency)
+                builder.add(word.lowercased().precomposedStringWithCanonicalMapping, frequency: frequency)
                 added += 1
             }
         }

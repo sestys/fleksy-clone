@@ -103,6 +103,7 @@ system provides one, so the only way to buy back vertical space is the row heigh
 ```
 Packages/FleksyCore     pure Swift engine (layouts, gestures, lexicon, corrector, composer, themes) + unit tests
 Keyboard/               the keyboard extension (custom-drawn UIKit view)
+KeyboardTests/          simulator unit tests for accessibility activation
 App/                    host app: onboarding + test field
 UITests/                XCUITest that types on the real keyboard in the Simulator
 Resources/Dictionaries  cs.txt / en.txt frequency lists + generated name lists (see LICENSE.txt)
@@ -125,7 +126,7 @@ Driving the real keyboard in the Simulator is slow, and most changes do not need
 the runner has three tiers. Each one runs the tier below it first.
 
 ```sh
-scripts/simulator.sh unit    # 115 FleksyCore tests, no Simulator          ~8s   (default)
+scripts/simulator.sh unit    # 142 FleksyCore tests, no Simulator          ~9s   (default)
 scripts/simulator.sh smoke   # + one UI test per wiring path               ~65s
 scripts/simulator.sh full    # + the whole XCUITest suite                  ~150s
 ```
@@ -136,6 +137,12 @@ touching anything in `Keyboard/`.
 The engine is where the behaviour lives and where it is cheap to test; the UI tests exist
 to prove the wiring — that touches reach the composer, that settings reach the keyboard,
 that the panels open. `smoke` runs one test for each of those three paths.
+
+Both simulator tiers also run keyboard accessibility unit tests. Core regressions cover
+document changes, selections, Unicode deletion, Enter boundaries, personal learning and
+touch/hold arbitration. `scripts/test-runner.sh` checks build and test failure propagation
+without starting a simulator. Failed Xcode runs retain their full log and return a
+nonzero exit status.
 
 A note if you are adding UI tests: resolving an element costs about 1.1s against 0.4s for
 the tap itself, which is why `key(_:)` caches. Prefer `exists` to `waitForExistence` for

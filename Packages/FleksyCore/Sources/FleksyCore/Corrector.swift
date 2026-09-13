@@ -115,11 +115,13 @@ public struct Corrector: Sendable {
                                                 limit: limit, buffer: &buffer)
                             guard cost <= limit else { continue }
                             let word = lexicon.word(at: i)
-                            var score = -cost + frequencyWeight * Double(lexicon.logFrequencies[i])
+                            // Vocabulary membership is cached; usage frequency must stay live.
+                            let frequency = max(lexicon.frequency(at: i), context.personal.personalFrequency(of: word))
+                            var score = -cost + frequencyWeight * log10(frequency)
                             if cost == 0 { score += exactMatchBonus }
                             score += context.personal.contextBoost(for: word)
                             results.append(Candidate(word: word, cost: cost, score: score,
-                                                     frequency: lexicon.frequency(at: i)))
+                                                     frequency: frequency))
                         }
                     }
                 }
